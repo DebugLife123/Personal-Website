@@ -23,7 +23,21 @@ const routes = [
     path: '/message', 
     name: 'Message',
     component: () => import('../views/Message.vue') // 留言模块懒加载 [cite: 65]
+  },
+  { path: '/blog', component: () => import('../views/Blog.vue') },
+
+  // router/index.js 核心代码检查
+{
+  path: '/article/:id', // 必须有冒号 :id
+  name: 'ArticleDetail',
+  component: () => import('../views/ArticleDetail.vue')
+},
+{ 
+    path: '/messages', 
+    name: 'MessageBoard',
+    component: () => import('../views/MessageBoard.vue') 
   }
+
 ]
 
 const router = createRouter({

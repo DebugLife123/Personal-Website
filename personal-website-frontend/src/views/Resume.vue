@@ -1,32 +1,30 @@
 <script setup>
 import { useRouter } from 'vue-router'
 
-// 获取路由实例
+// 获取路由实例，用于返回首页
 const router = useRouter()
 
-// 定义返回首页的方法
 const goBack = () => {
   router.push('/')
 }
 </script>
 
-
 <template>
   <div class="resume-wrapper">
     
     <div class="top-bar">
-      <el-button icon="ArrowLeft" text @click="$router.push('/')">返回首页</el-button>
+      <el-button icon="ArrowLeft" text @click="goBack">返回首页</el-button>
     </div>
 
     <el-row justify="center">
       <el-col :xs="24" :sm="22" :md="18" :lg="14">
         
         <div class="resume-header">
-          <h1 class="name">Wang</h1>
+          <h1 class="name">yu翔</h1>
           <div class="contact-bar">
             <el-button round size="small" icon="Message">kiuwoba@qq.com</el-button>
-            <el-button round size="small" icon="User">Wang</el-button>
-            <el-button round size="small" icon="Link">wang.cc</el-button>
+            <el-button round size="small" icon="User">yu翔</el-button>
+            <el-button round size="small" icon="Link">yu翔.cc</el-button>
           </div>
           <el-divider />
         </div>
@@ -120,31 +118,28 @@ const goBack = () => {
 
 /* Header 样式 */
 .resume-header { text-align: center; margin-bottom: 40px; }
-.name { font-size: 2.5rem; font-weight: 800; margin-bottom: 20px; }
+.name { font-size: 2.5rem; font-weight: 800; margin-bottom: 20px; color: #1a1a1a; }
 .contact-bar { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
 
 /* 章节标题 */
-.section-title { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; margin-bottom: 20px; }
+.section-title { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; margin-bottom: 20px; color: #333; }
 
 /* 卡片样式优化 */
 .content-card { border-radius: 12px; border: 1px solid #f0f0f0; background-color: #fafafa; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
 .org-info { display: flex; align-items: center; gap: 15px; }
-.org-info h4 { margin: 0; font-size: 1.1rem; }
+.org-info h4 { margin: 0; font-size: 1.1rem; color: #333; }
 .date { color: #999; font-size: 0.9rem; }
-.sub-title { font-weight: bold; margin-bottom: 5px; }
-.desc { color: #666; font-size: 0.95rem; }
+.sub-title { font-weight: bold; margin-bottom: 5px; color: #333; font-size: 0.95rem; }
+.desc { color: #666; font-size: 0.95rem; margin: 0; }
 
 /* 技术栈专属样式 */
 .skill-list { display: flex; flex-direction: column; gap: 15px; }
 .skill-card { border-radius: 12px; border: 1px solid #f0f0f0; }
 .skill-info { display: flex; align-items: center; gap: 20px; }
 .tech-logo { width: 48px; height: 48px; object-fit: contain; }
-.skill-info h4 { margin: 0 0 5px 0; font-size: 1.1rem; }
+.skill-info h4 { margin: 0 0 5px 0; font-size: 1.1rem; color: #333; }
 .skill-info p { margin: 0; color: #666; font-size: 0.9rem; }
-
-/* 调整项目经历中的副标题颜色 */
-.sub-title { color: #333; font-size: 0.95rem; margin-bottom: 8px; }
 
 /* 响应式调整 */
 @media (max-width: 768px) {

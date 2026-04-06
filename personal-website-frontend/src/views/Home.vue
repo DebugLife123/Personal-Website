@@ -7,14 +7,14 @@
       </div>
 
       <div class="info-section">
-        <h1 class="nickname">Wang</h1>
+        <h1 class="nickname">yu翔</h1>
         <p class="motto">
           初出茅庐 <span>|</span> 科班码农 <span>|</span> 拾枝者 · 欢迎来到我的主页
         </p>
       </div>
 
       <div class="social-grid">
-        <el-button class="social-btn" icon="Edit">博客</el-button>
+        <el-button class="social-btn" icon="Edit" @click="$router.push('/blog')">博客</el-button>
         <el-button class="social-btn" icon="Document" @click="$router.push('/resume')">简历</el-button>
         <el-button class="social-btn" icon="Message">邮箱</el-button>
        <el-button class="social-btn" @click="openExternal('https://github.com')">
@@ -38,7 +38,7 @@
       </div>
 
       <div class="card-footer">
-        <p>豫公网安备XXXXXXXX号 | 豫ICP备XXXXXXXX号-1 | © 2025-2026 Wang.</p>
+        <p>豫公网安备XXXXXXXX号 | 豫ICP备XXXXXXXX号-1 | © 2025-2026 yu翔.</p>
       </div>
     </div>
   </div>
