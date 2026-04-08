@@ -17,19 +17,19 @@
         <el-button class="social-btn" icon="Edit" @click="$router.push('/blog')">博客</el-button>
         <el-button class="social-btn" icon="Document" @click="$router.push('/resume')">简历</el-button>
         <el-button class="social-btn" icon="Message">邮箱</el-button>
-       <el-button class="social-btn" @click="openExternal('https://github.com')">
+       <el-button class="social-btn" @click="openExternal('https://github.com/DebugLife123')">
     <template #icon>
       <img src="https://api.iconify.design/mdi:github.svg" width="18" height="18" />
     </template>
     GitHub
   </el-button>
-       <el-button class="social-btn" @click="openExternal('https://bilibili.com')">
+       <el-button class="social-btn" @click="openExternal('https://space.bilibili.com/3494370628078296?spm_id_from=333.1007.0.0')">
     <template #icon>
       <img src="https://api.iconify.design/tabler:brand-bilibili.svg" width="18" height="18" />
     </template>
     Bilibili
   </el-button>
-       <el-button class="social-btn" @click="openExternal('https://leetcode.cn')">
+       <el-button class="social-btn" @click="openExternal('https://leetcode.cn/u/festive-lichtermaninv/')">
     <template #icon>
       <img src="https://api.iconify.design/simple-icons:leetcode.svg" width="18" height="18" />
     </template>
