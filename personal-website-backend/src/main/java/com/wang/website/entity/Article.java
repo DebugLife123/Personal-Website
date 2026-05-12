@@ -18,4 +18,7 @@ public class Article {
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private String cover; // 【新增】封面图字段
+    private String category; // 【新增】分类字段
+    private String tags; // 【新增】标签字段，多个标签用逗号分隔
+    private String status; // 状态：已发布 / 草稿
 }

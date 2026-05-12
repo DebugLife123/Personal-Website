@@ -1,12 +1,14 @@
 package com.wang.website.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
-import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Data;
 
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("message")
@@ -16,6 +18,14 @@ public class Message {
     private String nickname;
     private String content;
     private String avatar;
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss") // 格式化时间
+    private String email;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
+    private Integer parentId;
+    private String replyTo;
+    private Integer likes;
+    private Boolean isPinned;
+
+    @TableField(exist = false)
+    private List<Message> replies;
 }

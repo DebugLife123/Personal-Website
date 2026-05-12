@@ -2,6 +2,7 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
+import { recordArticleRead } from '../utils/statistic'
 import { Calendar, View, ArrowLeft } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -70,6 +71,7 @@ const handleAnchorClick = (anchor) => {
 
 onMounted(() => {
   fetchArticle()
+  recordArticleRead() // 记录文章阅读
   window.scrollTo(0, 0) // 切换页面时自动回到顶部
 })
 </script>
@@ -150,6 +152,11 @@ onMounted(() => {
 .article-detail-container {
   background-color: #f4f5f7;
   min-height: 100vh;
+  animation: pageIn 0.4s ease;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* --- Banner 区域样式 --- */
@@ -183,7 +190,7 @@ onMounted(() => {
 }
 
 .header-content { text-align: center; max-width: 850px; }
-.title { font-size: 2.6rem; margin-bottom: 20px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+.article-title { font-size: 2.6rem; margin-bottom: 20px; font-weight: 800; color: #fff; }
 .meta { display: flex; justify-content: center; align-items: center; gap: 15px; opacity: 0.9; }
 .meta-item { display: flex; align-items: center; gap: 6px; }
 
@@ -239,9 +246,10 @@ onMounted(() => {
 /* --- 移动端自适应 --- */
 @media (max-width: 768px) {
   .article-banner { height: 320px; }
-  .title { font-size: 1.6rem; }
+  .article-title { font-size: 1.6rem; }
   .main-wrapper { margin-top: -30px; padding: 0 10px 30px; }
   .content-card { padding: 5px; }
   .back-btn { top: 20px; left: 20px; padding: 8px 12px; }
 }
+
 </style>

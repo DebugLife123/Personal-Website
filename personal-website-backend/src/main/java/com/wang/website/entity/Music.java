@@ -7,18 +7,16 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("project")
-public class Project {
+@TableName("music")
+public class Music {
     @TableId(type = IdType.AUTO)
     private Integer id;
-    private String title;
-    private String description;
-    private String techStack;
-    private String githubUrl;
-    private String imgUrl;
-    private String previewUrl;
-    private String category;
-    private String status;
-    private Integer sort;
+    private String name;
+    private String artist;
+    private String album;
+    private String cover;
+    private String url;
+    private Integer duration;
+    private Boolean enabled;
     private LocalDateTime createTime;
 }
