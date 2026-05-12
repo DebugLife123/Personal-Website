@@ -5,7 +5,32 @@
       <div class="shape shape-1"></div>
       <div class="shape shape-2"></div>
       <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
     </div>
+
+    <!-- 粒子光斑 -->
+    <div class="particle-layer">
+      <div
+        v-for="p in particles"
+        :key="p.id"
+        class="particle"
+        :style="{
+          width: p.size + 'px',
+          height: p.size + 'px',
+          left: p.x + '%',
+          top: p.y + '%',
+          '--drift-x': p.dx + 'px',
+          '--drift-y': p.dy + 'px',
+          '--duration': p.duration + 's',
+          '--delay': p.delay + 's',
+          opacity: p.opacity,
+          background: p.color,
+        }"
+      ></div>
+    </div>
+
+    <!-- 噪点纹理 -->
+    <div class="noise-overlay"></div>
 
     <div class="login-container">
       <div class="login-card">
@@ -111,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Lock, View, ArrowRight } from '@element-plus/icons-vue'
 import { login, guestLogin, checkAuth } from '../utils/auth'
@@ -123,6 +148,37 @@ const errorMsg = ref('')
 const isLoggingIn = ref(false)
 const clickingAdmin = ref(false)
 const clickingGuest = ref(false)
+
+// 生成粒子光斑数据
+const particles = ref([])
+const generateParticles = () => {
+  const colors = [
+    'radial-gradient(circle, rgba(158,146,176,0.4), transparent)',
+    'radial-gradient(circle, rgba(108,95,160,0.3), transparent)',
+    'radial-gradient(circle, rgba(200,196,204,0.25), transparent)',
+    'radial-gradient(circle, rgba(130,120,160,0.35), transparent)',
+  ]
+  const list = []
+  for (let i = 0; i < 30; i++) {
+    list.push({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: 2 + Math.random() * 5,
+      dx: (Math.random() - 0.5) * 60,
+      dy: (Math.random() - 0.5) * 60,
+      duration: 8 + Math.random() * 14,
+      delay: Math.random() * 10,
+      opacity: 0.06 + Math.random() * 0.1,
+      color: colors[i % colors.length],
+    })
+  }
+  particles.value = list
+}
+
+onMounted(() => {
+  generateParticles()
+})
 
 const form = reactive({
   username: '',
@@ -178,13 +234,26 @@ const enterAsGuest = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0e0d14 0%, #1a1830 50%, #0e0d14 100%);
+  background:
+    /* 网格线 */
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    /* 主渐变 */
+    radial-gradient(ellipse at 20% 30%, rgba(60, 40, 120, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(30, 80, 160, 0.2) 0%, transparent 50%),
+    linear-gradient(135deg, #0a0a12 0%, #0f0d1a 40%, #0e1628 70%, #0a0a12 100%);
+  background-size:
+    48px 48px,
+    48px 48px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
   position: relative;
   overflow: hidden;
   font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-/* ---- 背景装饰 ---- */
+/* ---- 神经网络光斑（霓虹光斑） ---- */
 .bg-shapes {
   position: absolute;
   inset: 0;
@@ -193,39 +262,108 @@ const enterAsGuest = () => {
 .shape {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.15;
 }
 .shape-1 {
-  width: 500px; height: 500px;
-  background: #9e92b0;
-  top: -150px; left: -100px;
-  animation: float1 12s ease-in-out infinite;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(130, 80, 255, 0.2), transparent 70%);
+  filter: blur(50px);
+  top: -80px; left: -60px;
+  animation: neonFloat1 10s ease-in-out infinite;
 }
 .shape-2 {
-  width: 400px; height: 400px;
-  background: #6c5fa0;
-  bottom: -100px; right: -80px;
-  animation: float2 10s ease-in-out infinite;
+  width: 250px; height: 250px;
+  background: radial-gradient(circle, rgba(0, 180, 255, 0.18), transparent 70%);
+  filter: blur(45px);
+  bottom: -60px; right: -40px;
+  animation: neonFloat2 8s ease-in-out infinite;
 }
 .shape-3 {
-  width: 300px; height: 300px;
-  background: #4a3f60;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  animation: float3 8s ease-in-out infinite;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(200, 100, 255, 0.15), transparent 70%);
+  filter: blur(40px);
+  top: 55%; left: 10%;
+  animation: neonFloat3 12s ease-in-out infinite;
 }
-@keyframes float1 {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(60px, 40px); }
+.shape-4 {
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(0, 200, 255, 0.12), transparent 70%);
+  filter: blur(50px);
+  bottom: 20%; right: 15%;
+  animation: neonFloat4 9s ease-in-out infinite;
 }
-@keyframes float2 {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(-50px, -60px); }
+@keyframes neonFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, 30px) scale(1.05); }
+  66% { transform: translate(-20px, 50px) scale(0.95); }
 }
-@keyframes float3 {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50% { transform: translate(-50%, -50%) scale(1.15); }
+@keyframes neonFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-30px, -40px) scale(1.08); }
+  66% { transform: translate(20px, -20px) scale(0.95); }
+}
+@keyframes neonFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, -30px) scale(1.1); }
+}
+@keyframes neonFloat4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-40px, 40px) scale(1.06); }
+}
+
+/* ---- 粒子光斑 ---- */
+.particle-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+  animation: particleDrift var(--duration) ease-in-out infinite;
+  animation-delay: var(--delay);
+  backface-visibility: hidden;
+}
+@keyframes particleDrift {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(var(--drift-x), calc(var(--drift-y) * 0.5));
+  }
+  50% {
+    transform: translate(calc(var(--drift-x) * 0.5), var(--drift-y));
+  }
+  75% {
+    transform: translate(var(--drift-x), calc(var(--drift-y) * -0.3));
+  }
+}
+
+/* ---- 噪点纹理 ---- */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.1;
+}
+.noise-overlay::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  animation: noiseShift 0.5s steps(4) infinite;
+}
+@keyframes noiseShift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-5%, -5%); }
+  50% { transform: translate(-10%, 0); }
+  75% { transform: translate(-5%, 5%); }
 }
 
 /* ---- 登录容器 ---- */
