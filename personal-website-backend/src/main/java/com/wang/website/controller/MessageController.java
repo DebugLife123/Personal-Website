@@ -2,7 +2,9 @@ package com.wang.website.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.wang.website.entity.Message;
+import com.wang.website.entity.Resume;
 import com.wang.website.mapper.MessageMapper;
+import com.wang.website.mapper.ResumeMapper;
 import com.wang.website.common.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,13 @@ public class MessageController {
     @Autowired
     private MessageMapper messageMapper;
 
+    @Autowired
+    private ResumeMapper resumeMapper;
+
+    private static final String ADMIN_NICKNAME = "yu翔";
+    private static final String GUEST_NICKNAME = "游客";
+    private static final String GUEST_AVATAR = "";
+
     // 获取所有留言（含嵌套回复），置顶优先，按时间倒序
     @GetMapping("/list")
     public Result<List<Message>> list() {
@@ -27,6 +36,11 @@ public class MessageController {
                     .orderByDesc("is_pinned")
                     .orderByDesc("create_time");
             List<Message> allMessages = messageMapper.selectList(wrapper);
+
+            // 标记管理员留言
+            for (Message msg : allMessages) {
+                msg.setAdminPost(ADMIN_NICKNAME.equals(msg.getNickname()));
+            }
 
             // 按 parentId 分组构建回复树
             Map<Integer, List<Message>> replyMap = allMessages.stream()
@@ -56,9 +70,26 @@ public class MessageController {
     @PostMapping("/add")
     public Result<String> add(@RequestBody Message message) {
         try {
-            if (message.getNickname() == null || message.getContent() == null) {
+            if (message.getContent() == null || message.getContent().trim().isEmpty()) {
                 return Result.error("内容不能为空哦！");
             }
+
+            if (Boolean.TRUE.equals(message.getIsAdmin())) {
+                // 管理员留言：从简历表取姓名和头像
+                Resume resume = resumeMapper.selectById(1);
+                if (resume != null) {
+                    message.setNickname(resume.getName() != null ? resume.getName() : ADMIN_NICKNAME);
+                    message.setAvatar(resume.getAvatar() != null ? resume.getAvatar() : "");
+                } else {
+                    message.setNickname(ADMIN_NICKNAME);
+                    message.setAvatar("");
+                }
+            } else {
+                // 游客留言
+                message.setNickname(GUEST_NICKNAME);
+                message.setAvatar(GUEST_AVATAR);
+            }
+            message.setEmail("");
             message.setLikes(0);
             message.setIsPinned(false);
             messageMapper.insert(message);

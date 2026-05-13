@@ -28,4 +28,9 @@ public class Message {
 
     @TableField(exist = false)
     private List<Message> replies;
+
+    @TableField(exist = false)
+    private Boolean isAdmin; // 前端传入：是否管理员发言
+    @TableField(exist = false)
+    private Boolean adminPost; // 后端返回：是否管理员发的留言
 }

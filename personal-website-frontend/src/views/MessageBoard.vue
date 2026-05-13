@@ -4,26 +4,23 @@ import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTodayStatistic, getTotalStatistic } from '../utils/statistic'
 import {
-  Edit, UserFilled, Postcard, DataLine,
+  Edit, DataLine,
   Star, StarFilled, Delete, ChatDotSquare,
   ChatLineSquare
 } from '@element-plus/icons-vue'
 import { isAdmin } from '../utils/auth'
 
 const messages = ref([])
-const adminNickname = 'yu翔'
+
 
 // 留言表单
 const form = ref({
-  nickname: '',
-  email: '',
   content: '',
   isMarkdown: true
 })
 
 // 回复表单
 const replyForm = ref({
-  nickname: '',
   content: '',
   parentId: null,
   replyTo: ''
@@ -44,7 +41,7 @@ const likedIds = ref(new Set())
 const isLiked = (id) => likedIds.value.has(id)
 
 // 区分自己的留言
-const isOwnMessage = (nickname) => nickname === adminNickname
+const isOwnMessage = (msg) => msg.adminPost
 
 const fetchMessages = async () => {
   loading.value = true
@@ -60,12 +57,12 @@ const fetchMessages = async () => {
 }
 
 const submitMessage = async () => {
-  if (!form.value.nickname || !form.value.content) {
-    return ElMessage.warning('请填写昵称和内容')
+  if (!form.value.content.trim()) {
+    return ElMessage.warning('请输入留言内容')
   }
   submitting.value = true
   try {
-    const res = await request.post('/message/add', form.value)
+    const res = await request.post('/message/add', { ...form.value, isAdmin: isAdmin.value })
     if (res.data.code === 200) {
       ElMessage.success('留言成功！')
       form.value.content = ''
@@ -125,24 +122,23 @@ const deleteMessage = async (msg) => {
   } catch (e) {}
 }
 
-const openReplyForm = (msg) => {
-  currentReplyMsg.value = msg
-  replyForm.value = {
-    nickname: '',
-    content: '',
-    parentId: msg.id,
-    replyTo: msg.nickname
+  const openReplyForm = (msg) => {
+    currentReplyMsg.value = msg
+    replyForm.value = {
+      content: '',
+      parentId: msg.id,
+      replyTo: msg.nickname
+    }
+    showReplyForm.value = true
   }
-  showReplyForm.value = true
-}
 
 const submitReply = async () => {
-  if (!replyForm.value.nickname || !replyForm.value.content) {
-    return ElMessage.warning('请填写昵称和内容')
+  if (!replyForm.value.content.trim()) {
+    return ElMessage.warning('请输入回复内容')
   }
   replySubmitting.value = true
   try {
-    const res = await request.post('/message/add', replyForm.value)
+    const res = await request.post('/message/add', { ...replyForm.value, isAdmin: isAdmin.value })
     if (res.data.code === 200) {
       ElMessage.success('回复成功！')
       showReplyForm.value = false
@@ -159,7 +155,7 @@ const submitReply = async () => {
 const cancelReply = () => {
   showReplyForm.value = false
   currentReplyMsg.value = null
-  replyForm.value = { nickname: '', content: '', parentId: null, replyTo: '' }
+  replyForm.value = { content: '', parentId: null, replyTo: '' }
 }
 
 // 站点统计
@@ -211,14 +207,6 @@ onMounted(async () => {
                   maxlength="1000"
                   show-word-limit
                 />
-                <div class="post-inputs">
-                  <el-input v-model="form.nickname" placeholder="昵称 *" class="soft-input post-input">
-                    <template #prefix><el-icon><UserFilled /></el-icon></template>
-                  </el-input>
-                  <el-input v-model="form.email" placeholder="邮箱（可选）" class="soft-input post-input">
-                    <template #prefix><el-icon><Postcard /></el-icon></template>
-                  </el-input>
-                </div>
                 <div class="post-footer">
                   <div class="post-options">
                     <el-checkbox v-model="form.isMarkdown">Markdown</el-checkbox>
@@ -271,7 +259,7 @@ onMounted(async () => {
               class="message-card"
               :class="{
                 'is-pinned': msg.isPinned,
-                'is-own': isOwnMessage(msg.nickname),
+                'is-own': isOwnMessage(msg),
                 'is-hovered': hoveredMsg === msg.id
               }"
               @mouseenter="hoveredMsg = msg.id"
@@ -283,11 +271,11 @@ onMounted(async () => {
               </div>
 
               <div class="msg-header">
-                <el-avatar :size="42" class="msg-avatar" :class="{ 'own-avatar': isOwnMessage(msg.nickname) }">
+                <el-avatar :size="42" class="msg-avatar" :class="{ 'own-avatar': isOwnMessage(msg) }">
                   {{ msg.nickname?.charAt(0)?.toUpperCase() || '?' }}
                 </el-avatar>
                 <div class="msg-author">
-                  <span class="msg-nickname">{{ msg.nickname }} <span v-if="isOwnMessage(msg.nickname)" class="self-tag">管理员</span></span>
+                  <span class="msg-nickname">{{ msg.nickname }} <span v-if="isOwnMessage(msg)" class="self-tag">管理员</span></span>
                   <span class="msg-time">{{ msg.createTime }}</span>
                 </div>
               </div>
@@ -325,9 +313,9 @@ onMounted(async () => {
                   <span class="divider-line"></span>
                 </div>
                 <div class="replies-list">
-                  <div v-for="reply in msg.replies" :key="reply.id" class="reply-item" :class="{ 'reply-own': isOwnMessage(reply.nickname) }">
+                  <div v-for="reply in msg.replies" :key="reply.id" class="reply-item" :class="{ 'reply-own': isOwnMessage(reply) }">
                     <div class="reply-header">
-                      <el-avatar :size="26" class="reply-avatar" :class="{ 'reply-avatar-own': isOwnMessage(reply.nickname) }">
+                      <el-avatar :size="26" class="reply-avatar" :class="{ 'reply-avatar-own': isOwnMessage(reply) }">
                         {{ reply.nickname?.charAt(0)?.toUpperCase() || '?' }}
                       </el-avatar>
                       <span class="reply-nickname">{{ reply.nickname }}</span>
@@ -352,11 +340,6 @@ onMounted(async () => {
               <transition name="slide-down">
                 <div v-if="showReplyForm && currentReplyMsg && currentReplyMsg.id === msg.id" class="reply-form">
                   <div class="reply-form-header">回复 {{ replyForm.replyTo }}</div>
-                  <el-input
-                    v-model="replyForm.nickname"
-                    placeholder="昵称 *"
-                    class="soft-input reply-form-input"
-                  />
                   <el-input
                     v-model="replyForm.content"
                     type="textarea"
