@@ -32,6 +32,7 @@ CREATE TABLE message (
     email VARCHAR(100) DEFAULT '' COMMENT '邮箱',
     likes INT DEFAULT 0 COMMENT '点赞数',
     is_pinned TINYINT(1) DEFAULT 0 COMMENT '是否置顶',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT '审核状态: pending/approved/rejected/deleted',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     parent_id INT COMMENT '父留言ID，用于实现回复功能',
     reply_to VARCHAR(50) COMMENT '回复对象的昵称',
@@ -81,10 +82,10 @@ VALUES
 ('Spring Cloud微服务架构', 'Spring Cloud是构建微服务架构的利器，本文将介绍Spring Cloud的核心组件和使用方法。', 'Spring Cloud提供了一整套微服务解决方案，包括服务注册与发现、配置中心、负载均衡、熔断器等组件。本文将介绍如何使用Spring Cloud构建微服务架构。', 'https://img1.baidu.com/it/u=3334849785,3624443099&fm=253&app=120&f=JPEG?w=640&h=400', '后端', 'Spring Cloud, 微服务');
 
 -- 插入示例留言数据
-INSERT INTO message (nickname, content, avatar) 
-VALUES 
-('访客1', '网站做得很棒！', 'https://img0.baidu.com/it/u=3289832022,2938968940&fm=253&app=138&f=JPEG?w=500&h=500'),
-('访客2', '内容很丰富，学习了很多知识。', 'https://img1.baidu.com/it/u=2169531724,3386818915&fm=253&app=120&f=JPEG?w=500&h=500');
+INSERT INTO message (nickname, content, avatar, status)
+VALUES
+('访客1', '网站做得很棒！', 'https://img0.baidu.com/it/u=3289832022,2938968940&fm=253&app=138&f=JPEG?w=500&h=500', 'approved'),
+('访客2', '内容很丰富，学习了很多知识。', 'https://img1.baidu.com/it/u=2169531724,3386818915&fm=253&app=120&f=JPEG?w=500&h=500', 'approved');
 
 -- 5. 音乐表
 CREATE TABLE IF NOT EXISTS music (

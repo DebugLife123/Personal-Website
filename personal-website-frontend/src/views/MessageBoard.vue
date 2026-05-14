@@ -271,7 +271,7 @@ onMounted(async () => {
               </div>
 
               <div class="msg-header">
-                <el-avatar :size="42" class="msg-avatar" :class="{ 'own-avatar': isOwnMessage(msg) }">
+                <el-avatar :size="42" :src="msg.avatar" class="msg-avatar" :class="{ 'own-avatar': isOwnMessage(msg) }">
                   {{ msg.nickname?.charAt(0)?.toUpperCase() || '?' }}
                 </el-avatar>
                 <div class="msg-author">
@@ -315,7 +315,7 @@ onMounted(async () => {
                 <div class="replies-list">
                   <div v-for="reply in msg.replies" :key="reply.id" class="reply-item" :class="{ 'reply-own': isOwnMessage(reply) }">
                     <div class="reply-header">
-                      <el-avatar :size="26" class="reply-avatar" :class="{ 'reply-avatar-own': isOwnMessage(reply) }">
+                      <el-avatar :size="26" :src="reply.avatar" class="reply-avatar" :class="{ 'reply-avatar-own': isOwnMessage(reply) }">
                         {{ reply.nickname?.charAt(0)?.toUpperCase() || '?' }}
                       </el-avatar>
                       <span class="reply-nickname">{{ reply.nickname }}</span>

@@ -25,6 +25,7 @@ public class Message {
     private String replyTo;
     private Integer likes;
     private Boolean isPinned;
+    private String status; // pending/approved/rejected/deleted
 
     @TableField(exist = false)
     private List<Message> replies;
@@ -33,4 +34,6 @@ public class Message {
     private Boolean isAdmin; // 前端传入：是否管理员发言
     @TableField(exist = false)
     private Boolean adminPost; // 后端返回：是否管理员发的留言
+    @TableField(exist = false)
+    private Integer replyCount; // 回复数
 }

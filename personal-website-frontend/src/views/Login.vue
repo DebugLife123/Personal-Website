@@ -1,201 +1,238 @@
 <template>
-  <div class="login-page">
-    <!-- 背景装饰 -->
-    <div class="bg-shapes">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-      <div class="shape shape-3"></div>
-      <div class="shape shape-4"></div>
-    </div>
+  <div class="login-page" ref="pageRef">
+    <canvas ref="canvasRef" class="particle-canvas"></canvas>
 
-    <!-- 粒子光斑 -->
-    <div class="particle-layer">
-      <div
-        v-for="p in particles"
-        :key="p.id"
-        class="particle"
-        :style="{
-          width: p.size + 'px',
-          height: p.size + 'px',
-          left: p.x + '%',
-          top: p.y + '%',
-          '--drift-x': p.dx + 'px',
-          '--drift-y': p.dy + 'px',
-          '--duration': p.duration + 's',
-          '--delay': p.delay + 's',
-          opacity: p.opacity,
-          background: p.color,
-        }"
-      ></div>
-    </div>
+    <div class="login-card">
+      <!-- 品牌 -->
+      <div class="card-brand">
+        <span class="brand-icon">Y</span>
+      </div>
+      <h1 class="card-title">欢迎回来</h1>
+      <p class="card-sub">yu翔 的个人网站</p>
 
-    <!-- 噪点纹理 -->
-    <div class="noise-overlay"></div>
-
-    <div class="login-container">
-      <div class="login-card">
-        <!-- 头部 -->
-        <div class="login-header">
-          <div class="logo-area">
-            <span class="logo-letter">Y</span>
+      <!-- 身份选择：管理员 / 用户 -->
+      <div class="identity-row">
+        <div
+          class="identity-item"
+          :class="{ active: mode === 'admin' }"
+          @click="switchMode('admin')"
+        >
+          <div class="identity-avatar">
+            <img src="https://img0.baidu.com/it/u=3289832022,2938968940&fm=253&app=138&f=JPEG?w=500&h=500" />
           </div>
-          <h1 class="login-title">欢迎回来</h1>
-          <p class="login-subtitle">yu翔 的个人网站</p>
+          <span class="identity-label">管理员</span>
         </div>
-
-        <!-- 登录表单 -->
-        <div class="login-body" v-if="!isLoggingIn">
-          <!-- 头像预览 -->
-          <div class="avatar-row">
-            <div
-              class="avatar-preview"
-              :class="{ active: mode === 'admin', clicking: clickingAdmin }"
-              @click="switchToAdmin"
-            >
-              <el-avatar :size="48" src="https://img0.baidu.com/it/u=3289832022,2938968940&fm=253&app=138&f=JPEG?w=500&h=500" />
-              <span class="avatar-label">管理员</span>
-            </div>
-            <div
-              class="avatar-preview"
-              :class="{ active: mode === 'guest', clicking: clickingGuest }"
-              @click="switchToGuest"
-            >
-              <el-avatar :size="48" icon="UserFilled" style="background: #8a8eaa" />
-              <span class="avatar-label">访客</span>
-            </div>
+        <div
+          class="identity-item"
+          :class="{ active: mode === 'user' }"
+          @click="switchMode('user')"
+        >
+          <div class="identity-avatar guest-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z" />
+            </svg>
           </div>
-
-          <el-form @submit.prevent="handleLogin">
-            <!-- 管理员登录表单 -->
-            <template v-if="mode === 'admin'">
-              <div class="input-group">
-                <el-input
-                  v-model="form.username"
-                  placeholder="用户名"
-                  size="large"
-                  class="login-input"
-                  :prefix-icon="User"
-                  @keyup.enter="handleLogin"
-                />
-              </div>
-              <div class="input-group">
-                <el-input
-                  v-model="form.password"
-                  type="password"
-                  placeholder="密码"
-                  size="large"
-                  class="login-input"
-                  :prefix-icon="Lock"
-                  show-password
-                  @keyup.enter="handleLogin"
-                />
-              </div>
-              <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
-              <el-button
-                type="primary"
-                size="large"
-                class="login-btn"
-                :loading="submitting"
-                @click="handleLogin"
-              >登 录</el-button>
-            </template>
-
-            <!-- 游客模式 -->
-            <template v-if="mode === 'guest'">
-              <div class="guest-info">
-                <el-icon :size="20"><View /></el-icon>
-                <span>以游客身份浏览，仅可查看内容</span>
-              </div>
-              <el-button
-                type="primary"
-                size="large"
-                class="login-btn guest-btn"
-                @click="enterAsGuest"
-              >游客登录</el-button>
-            </template>
-          </el-form>
-        </div>
-
-        <!-- 底部切换 -->
-        <div class="login-footer">
-          <span v-if="mode === 'admin'" class="switch-link" @click="mode = 'guest'">
-            以游客身份进入
-            <el-icon><ArrowRight /></el-icon>
-          </span>
-          <span v-else class="switch-link" @click="mode = 'admin'">
-            管理员登录
-            <el-icon><ArrowRight /></el-icon>
-          </span>
+          <span class="identity-label">用户</span>
         </div>
       </div>
 
-      <!-- 底部版权 -->
-      <p class="copyright">© 2025-2026 yu翔. All rights reserved.</p>
+      <!-- 登录表单：管理员 / 用户 选中时显示 -->
+      <transition name="form-fade">
+        <div class="form-area" v-if="mode === 'admin' || mode === 'user'">
+          <input
+            ref="usernameRef"
+            v-model="form.username"
+            class="field-input"
+            type="text"
+            placeholder="用户名"
+            autocomplete="off"
+            @keyup.enter="focusPassword"
+          />
+          <input
+            ref="passwordRef"
+            v-model="form.password"
+            class="field-input"
+            type="password"
+            placeholder="密码"
+            autocomplete="off"
+            @keyup.enter="handleLogin"
+          />
+          <p v-if="errorMsg" class="error-text">{{ errorMsg }}</p>
+          <button
+            class="submit-btn"
+            :class="{ loading: submitting }"
+            :disabled="submitting"
+            @click="handleLogin"
+          >
+            <span v-if="submitting" class="btn-spinner"></span>
+            <span v-else>登录</span>
+          </button>
+        </div>
+      </transition>
+
+      <!-- 游客登录：始终在底部 -->
+      <div class="guest-section">
+        <p class="guest-hint">以游客身份浏览，仅可查看内容</p>
+        <button class="guest-btn" @click="enterAsGuest">游客登录</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Lock, View, ArrowRight } from '@element-plus/icons-vue'
-import { login, guestLogin, checkAuth } from '../utils/auth'
+import { login, guestLogin } from '../utils/auth'
 
 const router = useRouter()
 const mode = ref('guest')
 const submitting = ref(false)
 const errorMsg = ref('')
-const isLoggingIn = ref(false)
-const clickingAdmin = ref(false)
-const clickingGuest = ref(false)
+const usernameRef = ref(null)
+const passwordRef = ref(null)
 
-// 生成粒子光斑数据
-const particles = ref([])
-const generateParticles = () => {
-  const colors = [
-    'radial-gradient(circle, rgba(158,146,176,0.4), transparent)',
-    'radial-gradient(circle, rgba(108,95,160,0.3), transparent)',
-    'radial-gradient(circle, rgba(200,196,204,0.25), transparent)',
-    'radial-gradient(circle, rgba(130,120,160,0.35), transparent)',
-  ]
-  const list = []
-  for (let i = 0; i < 30; i++) {
-    list.push({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: 2 + Math.random() * 5,
-      dx: (Math.random() - 0.5) * 60,
-      dy: (Math.random() - 0.5) * 60,
-      duration: 8 + Math.random() * 14,
-      delay: Math.random() * 10,
-      opacity: 0.06 + Math.random() * 0.1,
-      color: colors[i % colors.length],
-    })
+const form = reactive({ username: '', password: '' })
+
+// ==================== Canvas 粒子系统 ====================
+const pageRef = ref(null)
+const canvasRef = ref(null)
+
+const PARTICLE_COUNT = 130
+const CONNECT_DIST = 140
+const MOUSE_RADIUS = 220
+const MOUSE_ATTRACT = 0.07
+
+let canvas, ctx, particles, mouse, animId
+let w, h
+
+class Particle {
+  constructor() {
+    this.x = Math.random() * w
+    this.y = Math.random() * h
+    this.ox = this.x
+    this.oy = this.y
+    this.vx = 0
+    this.vy = 0
+    this.r = 1.0 + Math.random() * 1.6
+    this.baseOpacity = 0.12 + Math.random() * 0.22
+    this.opacity = this.baseOpacity
   }
-  particles.value = list
+
+  update() {
+    const dx = mouse.x - this.x
+    const dy = mouse.y - this.y
+    const dist = Math.sqrt(dx * dx + dy * dy)
+
+    if (dist < MOUSE_RADIUS) {
+      const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS
+      const fx = (dx / dist) * force * MOUSE_ATTRACT
+      const fy = (dy / dist) * force * MOUSE_ATTRACT
+      this.vx += fx
+      this.vy += fy
+      this.opacity = Math.min(this.baseOpacity + force * 0.4, 0.6)
+    } else {
+      this.opacity += (this.baseOpacity - this.opacity) * 0.04
+    }
+
+    this.vx += (this.ox - this.x) * 0.003
+    this.vy += (this.oy - this.y) * 0.003
+    this.vx *= 0.94
+    this.vy *= 0.94
+
+    this.x += this.vx
+    this.y += this.vy
+  }
+
+  draw() {
+    ctx.beginPath()
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(180,170,210,${this.opacity})`
+    ctx.fill()
+  }
+}
+
+function initParticles() {
+  particles = Array.from({ length: PARTICLE_COUNT }, () => new Particle())
+}
+
+function drawLines() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const a = particles[i]
+      const b = particles[j]
+      const dx = a.x - b.x
+      const dy = a.y - b.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist < CONNECT_DIST) {
+        const avgOpacity = (a.opacity + b.opacity) / 2
+        const alpha = (1 - dist / CONNECT_DIST) * 0.05 + avgOpacity * 0.1
+        ctx.beginPath()
+        ctx.moveTo(a.x, a.y)
+        ctx.lineTo(b.x, b.y)
+        ctx.strokeStyle = `rgba(160,150,200,${alpha})`
+        ctx.lineWidth = 0.5
+        ctx.stroke()
+      }
+    }
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, w, h)
+  for (const p of particles) p.update()
+  drawLines()
+  for (const p of particles) p.draw()
+  animId = requestAnimationFrame(animate)
+}
+
+function resize() {
+  const el = pageRef.value
+  if (!el) return
+  w = el.offsetWidth
+  h = el.offsetHeight
+  canvas.width = w
+  canvas.height = h
+}
+
+function onMouseMove(e) {
+  mouse.x = e.clientX
+  mouse.y = e.clientY
+}
+
+function onMouseLeave() {
+  mouse.x = -9999
+  mouse.y = -9999
 }
 
 onMounted(() => {
-  generateParticles()
+  canvas = canvasRef.value
+  ctx = canvas.getContext('2d')
+  mouse = { x: -9999, y: -9999 }
+  resize()
+  initParticles()
+  animate()
+  window.addEventListener('resize', resize)
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseleave', onMouseLeave)
 })
 
-const form = reactive({
-  username: '',
-  password: ''
+onBeforeUnmount(() => {
+  cancelAnimationFrame(animId)
+  window.removeEventListener('resize', resize)
+  window.removeEventListener('mousemove', onMouseMove)
+  window.removeEventListener('mouseleave', onMouseLeave)
 })
 
-const switchToAdmin = () => {
-  mode.value = 'admin'
-  // 点击反馈动画
-  clickingAdmin.value = true
-  setTimeout(() => { clickingAdmin.value = false }, 400)
-  // 自动聚焦用户名输入框
-  setTimeout(() => {
-    const input = document.querySelector('.login-input .el-input__inner')
-    if (input) input.focus()
-  }, 100)
+// ==================== 业务逻辑 ====================
+const switchMode = (target) => {
+  mode.value = target
+  errorMsg.value = ''
+  form.username = ''
+  form.password = ''
+  nextTick(() => { usernameRef.value?.focus() })
 }
+
+const focusPassword = () => { passwordRef.value?.focus() }
 
 const handleLogin = async () => {
   if (!form.username.trim() || !form.password.trim()) {
@@ -206,368 +243,285 @@ const handleLogin = async () => {
   submitting.value = true
   try {
     const result = await login(form.username, form.password)
-    if (result.success) {
-      router.push('/')
-    } else {
-      errorMsg.value = result.message
-    }
-  } finally {
-    submitting.value = false
-  }
+    if (result.success) { router.push('/') }
+    else { errorMsg.value = result.message }
+  } finally { submitting.value = false }
 }
 
-const switchToGuest = () => {
-  mode.value = 'guest'
-  clickingGuest.value = true
-  setTimeout(() => { clickingGuest.value = false }, 400)
-}
-
-const enterAsGuest = () => {
-  guestLogin()
-  router.push('/')
-}
+const enterAsGuest = () => { guestLogin(); router.push('/') }
 </script>
 
 <style scoped>
+/* ============================================================
+   极简高级感登录页 — 深空渐变 + 粒子 Canvas + 磨砂玻璃卡片
+   ============================================================ */
+
+/* ---------- 页面基底 ---------- */
 .login-page {
+  position: relative;
+  width: 100%;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   background:
-    /* 网格线 */
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    /* 主渐变 */
-    radial-gradient(ellipse at 20% 30%, rgba(60, 40, 120, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(30, 80, 160, 0.2) 0%, transparent 50%),
-    linear-gradient(135deg, #0a0a12 0%, #0f0d1a 40%, #0e1628 70%, #0a0a12 100%);
-  background-size:
-    48px 48px,
-    48px 48px,
-    100% 100%,
-    100% 100%,
-    100% 100%;
-  position: relative;
-  overflow: hidden;
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", sans-serif;
+    radial-gradient(ellipse at 50% 0%, rgba(60, 55, 90, 0.5) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(40, 45, 70, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 40%, rgba(50, 45, 80, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(45, 50, 75, 0.2) 0%, transparent 50%),
+    linear-gradient(180deg, #12101c 0%, #161522 30%, #141320 60%, #11101a 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ---- 神经网络光斑（霓虹光斑） ---- */
-.bg-shapes {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.shape {
-  position: absolute;
-  border-radius: 50%;
-}
-.shape-1 {
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(130, 80, 255, 0.2), transparent 70%);
-  filter: blur(50px);
-  top: -80px; left: -60px;
-  animation: neonFloat1 10s ease-in-out infinite;
-}
-.shape-2 {
-  width: 250px; height: 250px;
-  background: radial-gradient(circle, rgba(0, 180, 255, 0.18), transparent 70%);
-  filter: blur(45px);
-  bottom: -60px; right: -40px;
-  animation: neonFloat2 8s ease-in-out infinite;
-}
-.shape-3 {
-  width: 180px; height: 180px;
-  background: radial-gradient(circle, rgba(200, 100, 255, 0.15), transparent 70%);
-  filter: blur(40px);
-  top: 55%; left: 10%;
-  animation: neonFloat3 12s ease-in-out infinite;
-}
-.shape-4 {
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(0, 200, 255, 0.12), transparent 70%);
-  filter: blur(50px);
-  bottom: 20%; right: 15%;
-  animation: neonFloat4 9s ease-in-out infinite;
-}
-@keyframes neonFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(40px, 30px) scale(1.05); }
-  66% { transform: translate(-20px, 50px) scale(0.95); }
-}
-@keyframes neonFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-30px, -40px) scale(1.08); }
-  66% { transform: translate(20px, -20px) scale(0.95); }
-}
-@keyframes neonFloat3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(60px, -30px) scale(1.1); }
-}
-@keyframes neonFloat4 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-40px, 40px) scale(1.06); }
-}
-
-/* ---- 粒子光斑 ---- */
-.particle-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  will-change: transform;
-  animation: particleDrift var(--duration) ease-in-out infinite;
-  animation-delay: var(--delay);
-  backface-visibility: hidden;
-}
-@keyframes particleDrift {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  25% {
-    transform: translate(var(--drift-x), calc(var(--drift-y) * 0.5));
-  }
-  50% {
-    transform: translate(calc(var(--drift-x) * 0.5), var(--drift-y));
-  }
-  75% {
-    transform: translate(var(--drift-x), calc(var(--drift-y) * -0.3));
-  }
-}
-
-/* ---- 噪点纹理 ---- */
-.noise-overlay {
+/* ---------- Canvas ---------- */
+.particle-canvas {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.1;
-}
-.noise-overlay::after {
-  content: '';
-  position: absolute;
-  inset: -50%;
-  width: 200%;
-  height: 200%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-  animation: noiseShift 0.5s steps(4) infinite;
-}
-@keyframes noiseShift {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-5%, -5%); }
-  50% { transform: translate(-10%, 0); }
-  75% { transform: translate(-5%, 5%); }
 }
 
-/* ---- 登录容器 ---- */
-.login-container {
+/* ============================================================
+   磨砂玻璃卡片
+   ============================================================ */
+.login-card {
   position: relative;
   z-index: 1;
-  width: 100%;
-  max-width: 420px;
-  padding: 20px;
-}
-
-.login-card {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 24px;
-  padding: 48px 36px 32px;
-  box-shadow: 0 8px 60px rgba(0, 0, 0, 0.4);
-}
-
-/* ---- 头部 ---- */
-.login-header {
-  text-align: center;
-  margin-bottom: 36px;
-}
-.logo-area {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #9e92b0, #6c5fa0);
-  margin-bottom: 20px;
-  box-shadow: 0 4px 20px rgba(108, 95, 160, 0.3);
-}
-.logo-letter {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 1px;
-}
-.login-title {
-  color: #fff;
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-.login-subtitle {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.9rem;
-  margin: 0;
-  letter-spacing: 1px;
-}
-
-/* ---- 模式切换头像行 ---- */
-.avatar-row {
-  display: flex;
-  justify-content: center;
-  gap: 32px;
-  margin-bottom: 28px;
-}
-.avatar-preview {
+  width: 400px;
+  padding: 52px 48px 44px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  opacity: 0.45;
-  transition: opacity 0.3s, transform 0.3s;
+  background: rgba(30, 28, 50, 0.45);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  box-shadow:
+    0 2px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(255, 255, 255, 0.04) inset;
 }
 
-.avatar-preview.clicking {
-  animation: avatarBounce 0.4s ease;
-}
-
-@keyframes avatarBounce {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.12); }
-  60% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-.avatar-preview.active {
-  opacity: 1;
-}
-.avatar-preview :deep(.el-avatar) {
-  border: 2px solid transparent;
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-.avatar-preview.active :deep(.el-avatar) {
-  border-color: #9e92b0;
-  box-shadow: 0 0 0 3px rgba(158, 146, 176, 0.25);
-}
-.avatar-label {
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 500;
-}
-.avatar-preview.active .avatar-label {
-  color: #c8c4cc;
-}
-
-/* ---- 表单 ---- */
-.input-group {
-  margin-bottom: 16px;
-}
-.login-input :deep(.el-input__wrapper) {
+/* ---------- 品牌 ---------- */
+.card-brand { margin-bottom: 24px; }
+.brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  box-shadow: none !important;
-  padding: 4px 16px;
-  transition: border-color 0.3s, background 0.3s;
-}
-.login-input :deep(.el-input__wrapper:hover) {
-  border-color: rgba(158, 146, 176, 0.4);
-}
-.login-input :deep(.el-input__wrapper.is-focus) {
-  border-color: #9e92b0;
-  background: rgba(255, 255, 255, 0.08);
-}
-.login-input :deep(.el-input__inner) {
-  color: #ece8e4;
-  font-size: 0.95rem;
-}
-.login-input :deep(.el-input__inner::placeholder) {
-  color: rgba(255, 255, 255, 0.3);
-}
-.login-input :deep(.el-input__prefix) {
-  color: rgba(255, 255, 255, 0.3);
-  margin-right: 8px;
-}
-
-.error-msg {
-  color: #f56c6c;
-  font-size: 0.82rem;
-  margin-bottom: 14px;
-  text-align: center;
-}
-
-.login-btn {
-  width: 100%;
-  height: 48px;
-  border-radius: 12px;
-  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 1.25rem;
   font-weight: 600;
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, #9e92b0, #7a6ea0);
-  border: none;
-  transition: transform 0.2s, box-shadow 0.3s;
-}
-.login-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(108, 95, 160, 0.35);
-}
-.login-btn:active {
-  transform: scale(0.98);
-}
-.guest-btn {
-  background: linear-gradient(135deg, #6c7a9a, #5a6a8a);
-}
-.guest-btn:hover {
-  box-shadow: 0 6px 24px rgba(90, 106, 138, 0.35);
+  letter-spacing: 0.5px;
+  user-select: none;
 }
 
-/* ---- 游客信息 ---- */
-.guest-info {
+/* ---------- 标题 ---------- */
+.card-title {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.82);
+}
+.card-sub {
+  margin: 0 0 40px;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* ---------- 身份切换 ---------- */
+.identity-row {
+  display: flex;
+  gap: 44px;
+  margin-bottom: 36px;
+}
+.identity-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  opacity: 0.28;
+  transition: opacity 0.3s;
+}
+.identity-item.active { opacity: 1; }
+.identity-item:hover { opacity: 0.6; }
+.identity-item.active:hover { opacity: 1; }
+
+.identity-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  transition: box-shadow 0.3s;
+}
+.identity-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.identity-item.active .identity-avatar {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.guest-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+}
+.guest-avatar svg {
+  width: 22px;
+  height: 22px;
+}
+.identity-item.active .guest-avatar {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.85rem;
-  margin-bottom: 20px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
 }
 
-/* ---- 底部 ---- */
-.login-footer {
-  text-align: center;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+.identity-label {
+  font-size: 0.76rem;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.5);
 }
-.switch-link {
-  display: inline-flex;
+
+/* ---------- 表单（含淡入淡出过渡） ---------- */
+.form-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.switch-link:hover {
-  color: #c8c4cc;
+  margin-bottom: 10px;
 }
 
-.copyright {
-  text-align: center;
+.form-fade-enter-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.form-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.form-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.form-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.field-input {
+  width: 100%;
+  height: 46px;
+  margin-bottom: 12px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.88rem;
+  letter-spacing: 0.5px;
+  outline: none;
+  transition: border-color 0.3s, background 0.3s;
+  box-sizing: border-box;
+}
+.field-input::placeholder {
   color: rgba(255, 255, 255, 0.2);
-  font-size: 0.75rem;
-  margin-top: 24px;
+}
+.field-input:focus {
+  border-color: rgba(160, 150, 210, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.error-text {
+  width: 100%;
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  color: rgba(240, 110, 110, 0.65);
+  text-align: center;
+}
+
+/* ---------- 登录按钮 ---------- */
+.submit-btn {
+  width: 100%;
+  height: 46px;
+  margin-top: 6px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(120, 135, 175, 0.22);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+.submit-btn:hover {
+  background: rgba(130, 145, 185, 0.3);
+  color: rgba(255, 255, 255, 0.82);
+}
+.submit-btn:active {
+  background: rgba(110, 125, 165, 0.18);
+}
+.submit-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.submit-btn.loading { pointer-events: none; }
+
+.btn-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: rgba(255,255,255,0.4);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- 游客登录（底部） ---------- */
+.guest-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.guest-hint {
+  margin: 0 0 18px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.5px;
+}
+.guest-btn {
+  width: 100%;
+  height: 46px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+.guest-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+}
+.guest-btn:active {
+  background: rgba(255, 255, 255, 0.03);
 }
 </style>
