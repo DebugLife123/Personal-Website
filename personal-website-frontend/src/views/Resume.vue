@@ -5,7 +5,7 @@ import request from '../utils/request'
 import { ElMessage } from 'element-plus'
 import {
   ArrowLeft, Message, User, Link, School, Briefcase, Files, Tools,
-  Edit, Check, Close, Trophy
+  Edit, Check, Close, Trophy, Plus, Delete
 } from '@element-plus/icons-vue'
 import { isAdmin } from '../utils/auth'
 
@@ -36,41 +36,41 @@ const resume = ref({
   intro: '初出茅庐 | 科班码农 | 拾枝者'
 })
 
-// 编辑拆解字段——教育
-const eduSchool = ref('')
-const eduMajor = ref('')
-const eduTime = ref('')
-const eduDesc = ref('')
-// 编辑拆解字段——工作
-const workCompany = ref('')
-const workRole = ref('')
-const workTime = ref('')
-const workDesc = ref('')
-// 编辑拆解字段——项目
-const projName = ref('')
-const projRole = ref('')
-const projTime = ref('')
-const projDesc = ref('')
+// 经历编辑草稿：三类经历各自可以自由增删条目
+const draftEntries = ref({ education: [], work: [], project: [] })
 
-// 从 resume 数据中拆解各段
-const parseResumeFields = (data) => {
-  const edu = (data.education || '').split(' | ')
-  eduSchool.value = edu[0] || ''
-  eduMajor.value = edu[1] || ''
-  eduTime.value = edu[2] || ''
-  eduDesc.value = edu[3] || ''
+// 各类型的输入占位文案
+const entryPlaceholders = {
+  education: { title: '学校名称', subtitle: '专业', time: '时间，如 2023.09 ~ 至今', desc: '描述，如 大三在读' },
+  work: { title: '公司名称', subtitle: '职位', time: '时间，如 2026.01 ~ 2026.02', desc: '工作内容描述' },
+  project: { title: '项目名称', subtitle: '角色 / 职责', time: '时间，如 2025.12 ~ 2026.01', desc: '项目描述' }
+}
 
-  const work = (data.workExperience || '').split(' | ')
-  workCompany.value = work[0] || ''
-  workRole.value = work[1] || ''
-  workTime.value = work[2] || ''
-  workDesc.value = work[3] || ''
+const createDraft = (type, source = {}) => ({
+  id: source.id ?? null,
+  type,
+  title: source.title ?? '',
+  subtitle: source.subtitle ?? '',
+  timeRange: source.timeRange ?? '',
+  description: source.description ?? '',
+  sort: source.sort ?? 0
+})
 
-  const proj = (data.projectExperience || '').split(' | ')
-  projName.value = proj[0] || ''
-  projRole.value = proj[1] || ''
-  projTime.value = proj[2] || ''
-  projDesc.value = proj[3] || ''
+// 用当前数据库数据初始化草稿
+const resetDrafts = () => {
+  draftEntries.value = {
+    education: educationEntries.value.map(item => createDraft('education', item)),
+    work: workEntries.value.map(item => createDraft('work', item)),
+    project: projectEntries.value.map(item => createDraft('project', item))
+  }
+}
+
+const addDraftEntry = (type) => {
+  draftEntries.value[type].push(createDraft(type, { sort: draftEntries.value[type].length }))
+}
+
+const removeDraftEntry = (type, index) => {
+  draftEntries.value[type].splice(index, 1)
 }
 
 // 技能列表（从 skill 字段解析）
@@ -102,7 +102,6 @@ const fetchResume = async () => {
     ])
     if (res.data.code === 200) {
       resume.value = res.data.data
-      parseResumeFields(resume.value)
       skillList.value = parseSkills(resume.value.skill)
     }
     if (entryRes.data.code === 200) {
@@ -116,22 +115,67 @@ const fetchResume = async () => {
   }
 }
 
-// 保存个人信息
-const saveResume = async () => {
-  // 组装教育/工作/项目字符串
-  resume.value.education = [eduSchool.value, eduMajor.value, eduTime.value, eduDesc.value].filter(Boolean).join(' | ')
-  resume.value.workExperience = [workCompany.value, workRole.value, workTime.value, workDesc.value].filter(Boolean).join(' | ')
-  resume.value.projectExperience = [projName.value, projRole.value, projTime.value, projDesc.value].filter(Boolean).join(' | ')
+// 保存：先提交基本信息，再按差异同步三类经历
+const saving = ref(false)
 
-  try {
-    const res = await request.post('/resume/update', resume.value)
-    if (res.data.code === 200) {
-      ElMessage.success('个人信息更新成功！')
-      isEditMode.value = false
+const syncEntries = async () => {
+  const originals = entries.value
+  const originalByType = {
+    education: originals.filter(i => i.type === 'education'),
+    work: originals.filter(i => i.type === 'work'),
+    project: originals.filter(i => i.type === 'project')
+  }
+
+  for (const type of ['education', 'work', 'project']) {
+    const drafts = draftEntries.value[type]
+    const original = originalByType[type]
+    const keptIds = new Set(drafts.filter(d => d.id).map(d => d.id))
+
+    // 删除：原有的但已不在草稿中的条目
+    for (const item of original) {
+      if (!keptIds.has(item.id)) {
+        await request.delete(`/resume/entries/${item.id}`)
+      }
     }
+
+    // 新增 / 更新
+    for (let index = 0; index < drafts.length; index++) {
+      const draft = drafts[index]
+      if (!draft.title.trim()) continue
+      const payload = {
+        type,
+        title: draft.title.trim(),
+        subtitle: draft.subtitle,
+        timeRange: draft.timeRange,
+        description: draft.description,
+        sort: index
+      }
+      if (draft.id) {
+        await request.put(`/resume/entries/${draft.id}`, payload)
+      } else {
+        await request.post('/resume/entries', payload)
+      }
+    }
+  }
+}
+
+const saveResume = async () => {
+  saving.value = true
+  try {
+    const res = await request.post('/resume/update', { ...resume.value })
+    if (res.data.code !== 200) {
+      ElMessage.error(res.data.message || '基本信息保存失败')
+      return
+    }
+    await syncEntries()
+    ElMessage.success('个人信息更新成功！')
+    isEditMode.value = false
+    await fetchResume()
   } catch (error) {
     console.error('更新个人信息失败:', error)
     ElMessage.error('更新失败，请重试')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -143,8 +187,8 @@ const cancelEdit = () => {
 
 // 进入编辑模式时解析字段
 const enterEditMode = () => {
-  parseResumeFields(resume.value)
   skillList.value = parseSkills(resume.value.skill)
+  resetDrafts()
   isEditMode.value = true
 }
 
@@ -162,7 +206,7 @@ onMounted(() => {
         <template v-if="isAdmin">
           <el-button v-if="!isEditMode" type="primary" icon="Edit" @click="enterEditMode">编辑个人资料</el-button>
           <template v-else>
-            <el-button type="success" icon="Check" @click="saveResume">保存</el-button>
+            <el-button type="success" icon="Check" :loading="saving" @click="saveResume">保存</el-button>
             <el-button type="info" icon="Close" @click="cancelEdit">取 消</el-button>
           </template>
         </template>
@@ -219,11 +263,18 @@ onMounted(() => {
             </el-timeline>
             <el-empty v-else description="暂无教育经历" :image-size="40" />
           </div>
-          <div v-else class="section-edit-group">
-            <el-input v-model="eduSchool" placeholder="学校" class="section-edit-input" />
-            <el-input v-model="eduMajor" placeholder="专业" class="section-edit-input" />
-            <el-input v-model="eduTime" placeholder="时间，如 2023.09 ~ 至今" class="section-edit-input" />
-            <el-input v-model="eduDesc" placeholder="描述，如 大三在读" class="section-edit-input" />
+          <div v-else class="entry-edit-list">
+            <div v-for="(item, index) in draftEntries.education" :key="item.id ?? index" class="entry-edit-item">
+              <div class="entry-edit-head">
+                <span class="entry-index">{{ index + 1 }}</span>
+                <el-button text type="danger" size="small" icon="Delete" @click="removeDraftEntry('education', index)">删除</el-button>
+              </div>
+              <el-input v-model="item.title" :placeholder="entryPlaceholders.education.title" class="section-edit-input" />
+              <el-input v-model="item.subtitle" :placeholder="entryPlaceholders.education.subtitle" class="section-edit-input" />
+              <el-input v-model="item.timeRange" :placeholder="entryPlaceholders.education.time" class="section-edit-input" />
+              <el-input v-model="item.description" :placeholder="entryPlaceholders.education.desc" class="section-edit-input" />
+            </div>
+            <el-button class="entry-add-btn" plain type="primary" icon="Plus" @click="addDraftEntry('education')">添加教育经历</el-button>
           </div>
         </section>
 
@@ -244,11 +295,18 @@ onMounted(() => {
             </el-timeline>
             <el-empty v-else description="暂无实习 / 工作经历" :image-size="40" />
           </div>
-          <div v-else class="section-edit-group">
-            <el-input v-model="workCompany" placeholder="公司名称" class="section-edit-input" />
-            <el-input v-model="workRole" placeholder="职位" class="section-edit-input" />
-            <el-input v-model="workTime" placeholder="时间，如 2026.01 ~ 2026.02" class="section-edit-input" />
-            <el-input v-model="workDesc" placeholder="工作描述" class="section-edit-input" />
+          <div v-else class="entry-edit-list">
+            <div v-for="(item, index) in draftEntries.work" :key="item.id ?? index" class="entry-edit-item">
+              <div class="entry-edit-head">
+                <span class="entry-index">{{ index + 1 }}</span>
+                <el-button text type="danger" size="small" icon="Delete" @click="removeDraftEntry('work', index)">删除</el-button>
+              </div>
+              <el-input v-model="item.title" :placeholder="entryPlaceholders.work.title" class="section-edit-input" />
+              <el-input v-model="item.subtitle" :placeholder="entryPlaceholders.work.subtitle" class="section-edit-input" />
+              <el-input v-model="item.timeRange" :placeholder="entryPlaceholders.work.time" class="section-edit-input" />
+              <el-input v-model="item.description" :placeholder="entryPlaceholders.work.desc" class="section-edit-input" />
+            </div>
+            <el-button class="entry-add-btn" plain type="primary" icon="Plus" @click="addDraftEntry('work')">添加实习 / 工作经历</el-button>
           </div>
         </section>
 
@@ -269,11 +327,18 @@ onMounted(() => {
             </el-timeline>
             <el-empty v-else description="暂无项目经历" :image-size="40" />
           </div>
-          <div v-else class="section-edit-group">
-            <el-input v-model="projName" placeholder="项目名称" class="section-edit-input" />
-            <el-input v-model="projRole" placeholder="角色 / 职责" class="section-edit-input" />
-            <el-input v-model="projTime" placeholder="时间，如 2025.12 ~ 2026.01" class="section-edit-input" />
-            <el-input v-model="projDesc" placeholder="项目描述" class="section-edit-input" />
+          <div v-else class="entry-edit-list">
+            <div v-for="(item, index) in draftEntries.project" :key="item.id ?? index" class="entry-edit-item">
+              <div class="entry-edit-head">
+                <span class="entry-index">{{ index + 1 }}</span>
+                <el-button text type="danger" size="small" icon="Delete" @click="removeDraftEntry('project', index)">删除</el-button>
+              </div>
+              <el-input v-model="item.title" :placeholder="entryPlaceholders.project.title" class="section-edit-input" />
+              <el-input v-model="item.subtitle" :placeholder="entryPlaceholders.project.subtitle" class="section-edit-input" />
+              <el-input v-model="item.timeRange" :placeholder="entryPlaceholders.project.time" class="section-edit-input" />
+              <el-input v-model="item.description" :placeholder="entryPlaceholders.project.desc" class="section-edit-input" />
+            </div>
+            <el-button class="entry-add-btn" plain type="primary" icon="Plus" @click="addDraftEntry('project')">添加项目经历</el-button>
           </div>
         </section>
 
@@ -346,6 +411,21 @@ onMounted(() => {
 .section-edit-group { display: flex; flex-direction: column; gap: 10px; }
 .section-edit-input { width: 100%; }
 .edit-hint { font-size: 0.8rem; color: #999; margin: -4px 0 0; }
+
+/* 经历条目编辑 */
+.entry-edit-list { display: flex; flex-direction: column; gap: 14px; }
+.entry-edit-item {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px; border: 1px dashed #d9d9e3; border-radius: 10px;
+  background: #fafafc;
+}
+.entry-edit-head { display: flex; justify-content: space-between; align-items: center; }
+.entry-index {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #8a8eaa; color: #fff; font-size: 0.75rem; font-weight: 600;
+}
+.entry-add-btn { align-self: flex-start; }
 
 /* 响应式调整 */
 @media (max-width: 768px) {
