@@ -344,21 +344,31 @@ onMounted(() => {
 
         <section class="resume-section">
           <h3 class="section-title"><el-icon><Tools /></el-icon> 技术栈</h3>
-          <div v-if="!isEditMode" class="skill-list">
-            <el-card v-for="skill in skillList" :key="skill" shadow="never" class="skill-card">
-              <div class="skill-info">
-                <div class="skill-icon-fallback">{{ skill.charAt(0).toUpperCase() }}</div>
-                <div class="text">
-                  <h4>{{ skill }}</h4>
-                  <p>熟练使用 {{ skill }}</p>
-                </div>
-              </div>
-            </el-card>
-            <el-empty v-if="skillList.length === 0" description="暂无技术栈" :image-size="40" />
+          <div v-if="!isEditMode" class="skill-panel">
+            <div v-if="skillList.length" class="skill-cloud">
+              <span
+                v-for="(skill, index) in skillList"
+                :key="skill"
+                class="skill-chip"
+                :style="{ '--chip-hue': (index * 47 + 232) % 360 }"
+              >
+                <span class="skill-dot"></span>
+                <span class="skill-name">{{ skill }}</span>
+              </span>
+            </div>
+            <el-empty v-else description="暂无技术栈" :image-size="40" />
+            <p v-if="skillList.length" class="skill-summary">共 {{ skillList.length }} 项技术能力</p>
           </div>
           <div v-else class="section-edit-group">
-            <el-input v-model="resume.skill" placeholder="多个技术用逗号分隔，如: JavaScript, Vue, SpringBoot, MySQL" class="section-edit-input" />
-            <p class="edit-hint">编辑保存后，技术栈将自动拆分为独立卡片展示</p>
+            <el-input
+              v-model="resume.skill"
+              type="textarea"
+              :rows="3"
+              resize="vertical"
+              placeholder="多个技术用逗号分隔，如: JavaScript, Vue, SpringBoot, MySQL"
+              class="section-edit-input"
+            />
+            <p class="edit-hint">用逗号分隔，保存后会拆分为技术标签逐个展示</p>
           </div>
         </section>
 
@@ -454,18 +464,41 @@ onMounted(() => {
 .desc { color: #666; font-size: 0.95rem; margin: 0; }
 
 /* 技术栈专属样式 */
-.skill-list { display: flex; flex-direction: column; gap: 15px; }
-.skill-card { border-radius: 12px; border: 1px solid #f0f0f0; }
-.skill-info { display: flex; align-items: center; gap: 20px; }
-.skill-icon-fallback {
-  width: 48px; height: 48px; border-radius: 10px;
-  background: linear-gradient(135deg, #9e92b0, #8a8eaa);
-  color: #fff; font-size: 1.3rem; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
+.skill-panel {
+  padding: 20px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fbfbfd 0%, #fafafa 100%);
+}
+.skill-cloud { display: flex; flex-wrap: wrap; gap: 10px; }
+.skill-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 16px 7px 12px;
+  border-radius: 999px;
+  border: 1px solid hsl(var(--chip-hue), 55%, 88%);
+  background: hsl(var(--chip-hue), 70%, 97%);
+  color: hsl(var(--chip-hue), 42%, 34%);
+  font-size: 0.92rem; font-weight: 600; letter-spacing: 0.2px;
+  line-height: 1.4;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: default;
+}
+.skill-chip:hover {
+  transform: translateY(-2px);
+  border-color: hsl(var(--chip-hue), 60%, 72%);
+  box-shadow: 0 6px 16px hsla(var(--chip-hue), 60%, 60%, 0.18);
+}
+.skill-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: hsl(var(--chip-hue), 68%, 62%);
   flex-shrink: 0;
 }
-.skill-info h4 { margin: 0 0 5px 0; font-size: 1.1rem; color: #333; }
-.skill-info p { margin: 0; color: #666; font-size: 0.9rem; }
+.skill-name { white-space: nowrap; }
+.skill-summary {
+  margin: 16px 0 0; padding-top: 14px;
+  border-top: 1px dashed #e8e8ef;
+  font-size: 0.82rem; color: #9a9aad; letter-spacing: 0.3px;
+}
 
 /* 响应式调整 */
 @media (max-width: 768px) {
