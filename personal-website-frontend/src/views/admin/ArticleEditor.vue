@@ -86,7 +86,7 @@ import { ArrowLeft, Plus, Refresh } from '@element-plus/icons-vue'
 const router = useRouter()
 const route = useRoute()
 
-const uploadUrl = 'http://localhost:8080/api/upload/image'
+const uploadUrl = 'http://localhost:8090/api/upload/image'
 
 const mdEditorRef = ref(null)
 const isEdit = ref(false)

@@ -237,8 +237,8 @@ import {
   Headset, Refresh, Upload
 } from '@element-plus/icons-vue'
 
-const uploadImageUrl = 'http://localhost:8080/api/upload/image'
-const uploadAudioUrl = 'http://localhost:8080/api/upload/audio'
+const uploadImageUrl = 'http://localhost:8090/api/upload/image'
+const uploadAudioUrl = 'http://localhost:8090/api/upload/audio'
 
 const loading = ref(false)
 const submitting = ref(false)

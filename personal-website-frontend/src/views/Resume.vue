@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import request from '../utils/request'
 import { ElMessage } from 'element-plus'
 import {
@@ -76,6 +76,13 @@ const parseResumeFields = (data) => {
 // 技能列表（从 skill 字段解析）
 const skillList = ref([])
 
+// 结构化简历经历
+const entries = ref([])
+const entriesByType = (type) => entries.value.filter(item => item.type === type)
+const educationEntries = computed(() => entriesByType('education'))
+const workEntries = computed(() => entriesByType('work'))
+const projectEntries = computed(() => entriesByType('project'))
+
 const parseSkills = (skills) => {
   return (skills || '').split(',').map(s => s.trim()).filter(Boolean)
 }
@@ -89,11 +96,17 @@ const pageLoaded = ref(false)
 const fetchResume = async () => {
   loading.value = true
   try {
-    const res = await request.get('/resume/get')
+    const [res, entryRes] = await Promise.all([
+      request.get('/resume/get'),
+      request.get('/resume/entries')
+    ])
     if (res.data.code === 200) {
       resume.value = res.data.data
       parseResumeFields(resume.value)
       skillList.value = parseSkills(resume.value.skill)
+    }
+    if (entryRes.data.code === 200) {
+      entries.value = entryRes.data.data || []
     }
   } catch (error) {
     console.error('获取个人信息失败:', error)
@@ -187,23 +200,24 @@ onMounted(() => {
         <section class="resume-section">
           <h3 class="section-title"><el-icon><School /></el-icon> 教育经历</h3>
           <div v-if="!isEditMode">
-            <el-timeline>
-              <el-timeline-item placement="top" :hollow="true">
+            <el-timeline v-if="educationEntries.length">
+              <el-timeline-item v-for="item in educationEntries" :key="item.id" placement="top" :hollow="true">
                 <el-card shadow="never" class="content-card">
                   <div class="card-header">
                     <div class="org-info">
                       <el-avatar :size="40" src="https://img1.baidu.com/it/u=460186796,737045498&fm=253&app=120&f=JPEG?w=814&h=800" />
                       <div class="text">
-                        <h4>{{ resume.education.split(' | ')[0] || '未知学校' }}</h4>
-                        <span>{{ resume.education.split(' | ')[1] || '' }}</span>
+                        <h4>{{ item.title }}</h4>
+                        <span>{{ item.subtitle || '' }}</span>
                       </div>
                     </div>
-                    <span class="date">{{ resume.education.split(' | ')[2] || '' }}</span>
+                    <span class="date">{{ item.timeRange || '' }}</span>
                   </div>
-                  <p class="desc">{{ resume.education.split(' | ')[3] || '暂无描述' }}</p>
+                  <p class="desc">{{ item.description || '暂无描述' }}</p>
                 </el-card>
               </el-timeline-item>
             </el-timeline>
+            <el-empty v-else description="暂无教育经历" :image-size="40" />
           </div>
           <div v-else class="section-edit-group">
             <el-input v-model="eduSchool" placeholder="学校" class="section-edit-input" />
@@ -216,18 +230,19 @@ onMounted(() => {
         <section class="resume-section">
           <h3 class="section-title"><el-icon><Briefcase /></el-icon> 实习 & 工作经历</h3>
           <div v-if="!isEditMode">
-            <el-timeline>
-              <el-timeline-item placement="top" :hollow="true">
+            <el-timeline v-if="workEntries.length">
+              <el-timeline-item v-for="item in workEntries" :key="item.id" placement="top" :hollow="true">
                 <el-card shadow="never" class="content-card">
                   <div class="card-header">
-                    <h4>{{ resume.workExperience.split(' | ')[0] || '未知公司' }}</h4>
-                    <span class="date">{{ resume.workExperience.split(' | ')[2] || '' }}</span>
+                    <h4>{{ item.title }}</h4>
+                    <span class="date">{{ item.timeRange || '' }}</span>
                   </div>
-                  <div class="sub-title">{{ resume.workExperience.split(' | ')[1] || '' }}</div>
-                  <p class="desc">{{ resume.workExperience.split(' | ')[3] || '暂无描述' }}</p>
+                  <div class="sub-title">{{ item.subtitle || '' }}</div>
+                  <p class="desc">{{ item.description || '暂无描述' }}</p>
                 </el-card>
               </el-timeline-item>
             </el-timeline>
+            <el-empty v-else description="暂无实习 / 工作经历" :image-size="40" />
           </div>
           <div v-else class="section-edit-group">
             <el-input v-model="workCompany" placeholder="公司名称" class="section-edit-input" />
@@ -240,18 +255,19 @@ onMounted(() => {
         <section class="resume-section">
           <h3 class="section-title"><el-icon><Files /></el-icon> 项目经历</h3>
           <div v-if="!isEditMode">
-            <el-timeline>
-              <el-timeline-item placement="top" :hollow="true">
+            <el-timeline v-if="projectEntries.length">
+              <el-timeline-item v-for="item in projectEntries" :key="item.id" placement="top" :hollow="true">
                 <el-card shadow="never" class="content-card">
                   <div class="card-header">
-                    <h4>{{ resume.projectExperience.split(' | ')[0] || '未知项目' }}</h4>
-                    <span class="date">{{ resume.projectExperience.split(' | ')[2] || '' }}</span>
+                    <h4>{{ item.title }}</h4>
+                    <span class="date">{{ item.timeRange || '' }}</span>
                   </div>
-                  <div class="sub-title">{{ resume.projectExperience.split(' | ')[1] || '' }}</div>
-                  <p class="desc">{{ resume.projectExperience.split(' | ')[3] || '暂无描述' }}</p>
+                  <div class="sub-title">{{ item.subtitle || '' }}</div>
+                  <p class="desc">{{ item.description || '暂无描述' }}</p>
                 </el-card>
               </el-timeline-item>
             </el-timeline>
+            <el-empty v-else description="暂无项目经历" :image-size="40" />
           </div>
           <div v-else class="section-edit-group">
             <el-input v-model="projName" placeholder="项目名称" class="section-edit-input" />

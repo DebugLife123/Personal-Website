@@ -37,7 +37,7 @@ public class FileUploadController {
             File dest = new File(uploadDir + fileName);
             file.transferTo(dest);
 
-            String url = "http://localhost:8080/uploads/images/" + fileName;
+            String url = "http://localhost:8090/uploads/images/" + fileName;
             return Result.success(url);
         } catch (IOException e) {
             e.printStackTrace();
@@ -69,7 +69,7 @@ public class FileUploadController {
             File dest = new File(uploadDir + fileName);
             file.transferTo(dest);
 
-            String url = "http://localhost:8080/uploads/audio/" + fileName;
+            String url = "http://localhost:8090/uploads/audio/" + fileName;
             return Result.success(url);
         } catch (IOException e) {
             e.printStackTrace();

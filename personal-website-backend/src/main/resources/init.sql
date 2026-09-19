@@ -68,6 +68,21 @@ CREATE TABLE IF NOT EXISTS statistic (
     UNIQUE KEY uk_date (date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='访问统计表';
 
+-- 结构化简历经历表：支持教育、实习/工作、项目的增删改查
+CREATE TABLE IF NOT EXISTS resume_entry (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    resume_id INT NOT NULL DEFAULT 1 COMMENT '所属简历ID',
+    type VARCHAR(20) NOT NULL COMMENT '类型：education/work/project',
+    title VARCHAR(255) NOT NULL COMMENT '学校、公司或项目名称',
+    subtitle VARCHAR(255) DEFAULT '' COMMENT '专业、职位或项目角色',
+    time_range VARCHAR(100) DEFAULT '' COMMENT '时间范围',
+    description TEXT COMMENT '经历描述',
+    sort INT DEFAULT 0 COMMENT '排序值，越小越靠前',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_resume_entry_resume_type (resume_id, type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='结构化简历经历';
+
 -- 插入默认个人简历数据
 INSERT INTO resume (name, avatar, email, phone, address, education, work_experience, project_experience, skill, award, intro) 
 VALUES ('yu翔', 'https://img0.baidu.com/it/u=3289832022,2938968940&fm=253&app=138&f=JPEG?w=500&h=500', '2739267961@qq.com', '', '湖南-衡阳', '南华大学 | 软件工程 | 2023.09 ~ 至今', '西安青砧智果科技有限公司 | 算法工程师助理 | 2026.01 ~ 2026.02', '七锡源集 | 任务看板系统 | 2025.12 ~ 2026.01', 'JavaScript, Vue, SpringBoot, MySQL', '', '初出茅庐 | 科班码农 | 拾枝者');

@@ -230,7 +230,7 @@ const insertCustomHighlight = () => {
 const emojis = '😀😃😄😁😆😅😂🤣🙂😊😇🥰😍🤩😘😗😚😋😛😜🤪😝🤑🤗🤭🤫🤔🤐🤨😐😑😶😏😒🙄😬🤥😌😔😪🤤😴😷🤒🤕🤢🤮🥴😵🤯🥳😎🧐😕😟🙁😮😯😲😳🥺😢😭😤😠😡🤬💀👋✌🤞🤟🤘🤙👌👍👎✊👊🤛🤜👏🙌👐🤲🙏💪🦵🦶👂👃🧠🦷👀👅👄💋❤🧡💛💚💙💜🖤🤍🤎💔❣💕💞💓💗💖💘💝🌟⭐✨🔥💥🌈☀🌙⭐🌸🌺🌻🌹🌷🌼🌿🍀🌊🔥🌟⭐✨'.split('')
 
 // Upload
-const uploadUrl = 'http://localhost:8080/api/upload/image'
+const uploadUrl = 'http://localhost:8090/api/upload/image'
 
 // --- computed ---
 const lineCount = computed(() => {
