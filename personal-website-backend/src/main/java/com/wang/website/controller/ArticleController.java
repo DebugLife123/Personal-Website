@@ -8,6 +8,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.website.common.Result;
 import com.wang.website.entity.Article;
 import com.wang.website.mapper.ArticleMapper;
+import com.wang.website.mapper.OperationLogMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +22,9 @@ public class ArticleController {
 
     @Autowired
     private ArticleMapper articleMapper;
+
+    @Autowired
+    private com.wang.website.mapper.OperationLogMapper operationLogMapper;
 
     // 获取文章列表（不分页）
     @GetMapping("/list")
@@ -157,13 +162,14 @@ public class ArticleController {
 
     // 新增文章
     @PostMapping("/add")
-    public Result<String> addArticle(@RequestBody Article article) {
+    public Result<String> addArticle(@RequestBody Article article, HttpServletRequest request) {
         try {
             article.setViews(0);
             if (article.getStatus() == null || article.getStatus().isEmpty()) {
                 article.setStatus("已发布");
             }
             articleMapper.insert(article);
+            log(request, "发布文章", article.getTitle());
             return Result.success("文章发布成功！");
         } catch (Exception e) {
             e.printStackTrace();
@@ -173,9 +179,10 @@ public class ArticleController {
 
     // 更新文章
     @PutMapping("/update")
-    public Result<String> updateArticle(@RequestBody Article article) {
+    public Result<String> updateArticle(@RequestBody Article article, HttpServletRequest request) {
         try {
             articleMapper.updateById(article);
+            log(request, "更新文章", article.getTitle());
             return Result.success("文章更新成功！");
         } catch (Exception e) {
             e.printStackTrace();
@@ -185,9 +192,11 @@ public class ArticleController {
 
     // 删除文章
     @DeleteMapping("/delete/{id}")
-    public Result<String> deleteArticle(@PathVariable Integer id) {
+    public Result<String> deleteArticle(@PathVariable Integer id, HttpServletRequest request) {
         try {
+            Article a = articleMapper.selectById(id);
             articleMapper.deleteById(id);
+            log(request, "删除文章", a != null ? a.getTitle() : ("id=" + id));
             return Result.success("文章删除成功！");
         } catch (Exception e) {
             e.printStackTrace();
@@ -210,6 +219,13 @@ public class ArticleController {
             e.printStackTrace();
             return Result.error("获取文章详情失败");
         }
+    }
+
+    private void log(HttpServletRequest request, String action, String detail) {
+        String username = (String) request.getAttribute("adminUser");
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty()) ip = request.getRemoteAddr();
+        OperationLogController.record(operationLogMapper, username, action, detail, ip);
     }
 
     // 根据 ID 获取文章详情（管理后台用，不增加阅读量）

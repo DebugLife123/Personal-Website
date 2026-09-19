@@ -11,10 +11,11 @@ const login = async (username, password) => {
   try {
     const res = await request.post('/user/login', { username, password })
     if (res.data.code === 200) {
-      currentUser.value = res.data.data
+      const data = res.data.data
+      currentUser.value = { username: data.username }
       isAdmin.value = true
       isLoggedIn.value = true
-      localStorage.setItem('auth', JSON.stringify({ type: 'admin', username }))
+      localStorage.setItem('auth', JSON.stringify({ type: 'admin', username: data.username, token: data.token }))
       return { success: true }
     } else {
       return { success: false, message: res.data.message || '登录失败' }
@@ -34,6 +35,7 @@ const guestLogin = () => {
 
 // 退出登录
 const logout = () => {
+  try { request.post('/user/logout').catch(() => {}) } catch { /* ignore */ }
   isLoggedIn.value = false
   isAdmin.value = false
   currentUser.value = null
@@ -50,6 +52,13 @@ const checkAuth = () => {
       isAdmin.value = data.type === 'admin'
       if (data.type === 'admin') {
         currentUser.value = { username: data.username }
+        if (!data.token) {
+          // 旧版登录态缺少 token，强制重新登录
+          localStorage.removeItem('auth')
+          isLoggedIn.value = false
+          isAdmin.value = false
+          currentUser.value = null
+        }
       }
     } catch {
       localStorage.removeItem('auth')

@@ -76,6 +76,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
+import request from '../../utils/request'
 import { View, User, TrendCharts, Plus, Document, ChatLineRound } from '@element-plus/icons-vue'
 
 const pvChartRef = ref(null)
@@ -90,32 +91,21 @@ let provinceChart = null
 const dateRange = ref([])
 
 const statCards = ref([
-  { icon: View, value: '12,458', label: '总浏览量', color: '#6c5fa0', bg: '#f0ecf6' },
-  { icon: User, value: '3,682', label: '总访客数', color: '#5a8d7a', bg: '#eaf5f0' },
-  { icon: TrendCharts, value: '347', label: '今日浏览', color: '#c08a5c', bg: '#f6f0e8' },
-  { icon: Plus, value: '28', label: '今日新访客', color: '#6a8aaa', bg: '#e8eef6' },
-  { icon: Document, value: '8', label: '文章总数', color: '#8a6a9a', bg: '#f2ecf6' },
-  { icon: ChatLineRound, value: '42', label: '评论总数', color: '#9a7a6a', bg: '#f6f0ec' },
+  { icon: View, value: '-', label: '总浏览量', color: '#6c5fa0', bg: '#f0ecf6' },
+  { icon: User, value: '-', label: '总访客数', color: '#5a8d7a', bg: '#eaf5f0' },
+  { icon: TrendCharts, value: '-', label: '今日浏览', color: '#c08a5c', bg: '#f6f0e8' },
+  { icon: Plus, value: '-', label: '今日新访客', color: '#6a8aaa', bg: '#e8eef6' },
+  { icon: Document, value: '-', label: '文章总数', color: '#8a6a9a', bg: '#f2ecf6' },
+  { icon: ChatLineRound, value: '-', label: '留言总数', color: '#9a7a6a', bg: '#f6f0ec' },
 ])
 
-// 模拟数据：近7天浏览量/访客数
-const days7 = ['06', '07', '08', '09', '10', '11', '12']
-const pvData = [820, 932, 901, 934, 1290, 1330, 1320]
-const uvData = [320, 382, 401, 434, 590, 630, 620]
+// 近7天数据（真实接口填充）
+const days7 = ref(['-','-','-','-','-','-','-'])
+const pvData = ref([0,0,0,0,0,0,0])
+const uvData = ref([0,0,0,0,0,0,0])
 
-// TOP10 文章
-const topArticles = [
-  { name: 'Spring Boot 入门指南', value: 2340 },
-  { name: 'Vue3 组合式 API 详解', value: 1890 },
-  { name: '前端工程化实践', value: 1560 },
-  { name: 'MySQL 性能优化技巧', value: 1420 },
-  { name: 'Docker 容器化部署', value: 1280 },
-  { name: 'JavaScript 异步编程', value: 1150 },
-  { name: 'Git 工作流最佳实践', value: 980 },
-  { name: 'RESTful API 设计规范', value: 870 },
-  { name: 'TypeScript 入门', value: 760 },
-  { name: 'Webpack 配置详解', value: 650 },
-]
+// TOP10 文章（真实接口填充）
+const topArticles = ref([])
 
 // 省份数据
 const provinceData = [
@@ -150,7 +140,7 @@ const initPvChart = () => {
     grid: { left: '3%', right: '4%', bottom: '8%', top: '8%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: days7,
+      data: days7.value,
       axisLine: { lineStyle: { color: lightGray } },
       axisLabel: { color: '#999', fontSize: 11 },
       axisTick: { show: false },
@@ -170,7 +160,7 @@ const initPvChart = () => {
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, gradientColors.map((c, i) => ({ offset: i, color: c })))
       },
-      data: pvData,
+      data: pvData.value,
     }],
   })
 }
@@ -206,7 +196,7 @@ const initUvChart = () => {
           { offset: 1, color: 'rgba(90,141,122,0.02)' },
         ])
       },
-      data: uvData,
+      data: uvData.value,
     }],
   })
 }
@@ -214,8 +204,8 @@ const initUvChart = () => {
 const initTopArticles = () => {
   if (!topArticlesRef.value) return
   topChart = echarts.init(topArticlesRef.value)
-  const names = topArticles.map(a => a.name).reverse()
-  const values = topArticles.map(a => a.value).reverse()
+  const names = topArticles.value.map(a => a.name).reverse()
+  const values = topArticles.value.map(a => a.value).reverse()
   topChart.setOption({
     tooltip: {
       trigger: 'axis',
@@ -298,11 +288,67 @@ const resizeAll = () => {
   provinceChart?.resize()
 }
 
+
+// ---- 真实数据加载 ----
+const loadStats = async () => {
+  try {
+    const [today, totalSt, arts, msgs, visSum] = await Promise.all([
+      request.get('/statistic/today').then(r => r.data.code === 200 ? r.data.data : null).catch(() => null),
+      request.get('/statistic/total').then(r => r.data.code === 200 ? r.data.data : null).catch(() => null),
+      request.get('/article/list').then(r => r.data.code === 200 ? r.data.data : []).catch(() => []),
+      request.get('/message/list').then(r => r.data.code === 200 ? r.data.data : []).catch(() => []),
+      request.get('/visitor/summary').then(r => r.data.code === 200 ? r.data.data : null).catch(() => null),
+    ])
+
+    // 折线：最近 7 天
+    const days = []
+    const pv = []
+    const uv = []
+    const visByDay = {}
+    if (visSum && Array.isArray(visSum.byDay)) {
+      for (const d of visSum.byDay) {
+        const key = String(d.visit_date || d.VISIT_DATE || d.visitDate).slice(0, 10)
+        visByDay[key] = Number(d.cnt || d.CNT || 0)
+      }
+    }
+    for (let i = 6; i >= 0; i--) {
+      const dt = new Date(); dt.setDate(dt.getDate() - i)
+      const iso = dt.toISOString().slice(0, 10)
+      days.push(iso.slice(5).replace('-', '/'))
+      pv.push(visByDay[iso] ?? 0)
+      uv.push(visByDay[iso] ?? 0)
+    }
+    days7.value = days
+    pvData.value = pv
+    uvData.value = uv
+
+    // 顶部卡片
+    const artsArr = Array.isArray(arts) ? arts : []
+    const msgsArr = Array.isArray(msgs) ? msgs : []
+    statCards.value = [
+      { icon: View, value: totalSt ? totalSt.pageViews : '-', label: '总浏览量', color: '#6c5fa0', bg: '#f0ecf6' },
+      { icon: User, value: totalSt ? totalSt.uniqueVisitors : '-', label: '总访客数', color: '#5a8d7a', bg: '#eaf5f0' },
+      { icon: TrendCharts, value: today ? today.pageViews : '-', label: '今日浏览', color: '#c08a5c', bg: '#f6f0e8' },
+      { icon: Plus, value: today ? today.uniqueVisitors : '-', label: '今日新访客', color: '#6a8aaa', bg: '#e8eef6' },
+      { icon: Document, value: artsArr.length, label: '文章总数', color: '#8a6a9a', bg: '#f2ecf6' },
+      { icon: ChatLineRound, value: msgsArr.length, label: '留言总数', color: '#9a7a6a', bg: '#f6f0ec' },
+    ]
+
+    // TOP 文章
+    topArticles.value = artsArr
+      .slice()
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 10)
+      .map(a => ({ name: a.title, value: a.views || 0 }))
+  } catch (e) { console.error(e) }
+}
+
 const updateCharts = () => {
   // In real app would fetch from API with date range
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await loadStats()
   nextTick(() => {
     initPvChart()
     initUvChart()

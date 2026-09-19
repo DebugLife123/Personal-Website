@@ -119,3 +119,43 @@ CREATE TABLE IF NOT EXISTS music (
 INSERT INTO statistic (date, page_views, unique_visitors, article_reads) 
 VALUES (CURDATE(), 0, 0, 0) 
 ON DUPLICATE KEY UPDATE page_views = VALUES(page_views), unique_visitors = VALUES(unique_visitors), article_reads = VALUES(article_reads);
+
+-- 6. 操作日志表
+CREATE TABLE IF NOT EXISTS operation_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) DEFAULT '' COMMENT '操作人',
+    action VARCHAR(100) DEFAULT '' COMMENT '操作类型',
+    detail VARCHAR(500) DEFAULT '' COMMENT '操作详情',
+    ip VARCHAR(50) DEFAULT '' COMMENT '来源IP',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+    INDEX idx_op_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表';
+
+-- 7. 访客记录表
+CREATE TABLE IF NOT EXISTS visitor (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip VARCHAR(50) DEFAULT '' COMMENT '访客IP',
+    user_agent VARCHAR(255) DEFAULT '' COMMENT '浏览器UA',
+    path VARCHAR(200) DEFAULT '' COMMENT '访问路径',
+    visit_date DATE COMMENT '访问日期',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '记录时间',
+    INDEX idx_visitor_date (visit_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='访客记录表';
+
+-- 8. 站点设置表
+CREATE TABLE IF NOT EXISTS site_setting (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL COMMENT '设置项',
+    setting_value TEXT COMMENT '设置值',
+    description VARCHAR(200) DEFAULT '' COMMENT '说明',
+    UNIQUE KEY uk_setting_key (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站点设置表';
+
+-- 默认站点设置
+INSERT INTO site_setting (setting_key, setting_value, description) VALUES
+('site_title', 'yu翔的个人网站', '站点标题'),
+('site_description', '记录技术与生活', '站点简介'),
+('icp', '', '备案号'),
+('footer_text', 'Built with Vue3 & SpringBoot', '页脚文案'),
+('music_autoplay', 'false', '音乐自动播放')
+ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);

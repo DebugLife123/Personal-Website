@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { recordPageView } from './utils/statistic'
 import { initTheme, toggleTheme, getTheme } from './utils/theme'
 import Navbar from './components/Navbar.vue'
+import request from './utils/request'
 
 const isDarkMode = ref(getTheme() === 'dark')
 
@@ -14,6 +15,8 @@ const handleThemeToggle = () => {
 onMounted(() => {
   recordPageView()
   initTheme()
+  // 记录访客明细
+  request.post('/visitor/record', { path: location.pathname }).catch(() => {})
 })
 </script>
 
