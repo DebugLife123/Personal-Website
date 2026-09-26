@@ -1,5 +1,6 @@
 server:
-  port: 8090
+  # 默认本地开发端口 8090；服务器部署通过环境变量 SERVER_PORT 覆盖
+  port: ${SERVER_PORT:8090}
 
 spring:
   # 敏感配置（数据库账号密码）放在 application-local.yml（已被 gitignore，不会提交），

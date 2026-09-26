@@ -1,0 +1,17 @@
+[Unit]
+Description=Personal Website (Spring Boot + Vue SPA)
+After=network.target mysql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/personal-website
+EnvironmentFile=/opt/personal-website/app.env
+ExecStart=/usr/bin/java -Xms128m -Xmx384m -jar /opt/personal-website/app.jar
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+StandardOutput=append:/opt/personal-website/logs/app.log
+StandardError=append:/opt/personal-website/logs/app.log
+
+[Install]
+WantedBy=multi-user.target
