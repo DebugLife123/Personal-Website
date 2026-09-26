@@ -409,180 +409,83 @@ html.dark .article-detail-container .toc-item:hover {
   color: #409eff;
 }
 
-/* ---- Projects (深紫色沉浸) ---- */
-html.dark .projects-page {
-  background: linear-gradient(135deg, #0e0d14 0%, #0b0b10 100%) !important;
+/* ============================================================
+   🖋 纸墨档案 / 留言册 · 暗色（同一套纸墨，换成夜色）
+   两个页面内部已改为令牌化，暗色只需替换令牌
+   ============================================================ */
+html.dark .projects-page,
+html.dark .message-page {
+  --paper: #131110;
+  --paper-raised: #1c1917;
+  --ink: #ece6da;
+  --ink-2: #a49b8d;
+  --ink-3: #7c7266;
+  --line: #2d2823;
+  --line-strong: #443d34;
+  --vermilion: #d6552f;
+  --vermilion-deep: #b23e22;
+
+  background:
+    radial-gradient(1200px 400px at 50% -120px, rgba(255, 245, 230, 0.035), transparent 70%),
+    var(--paper) !important;
+  color: var(--ink);
 }
-html.dark .top-card-toolbar,
-html.dark .project-card,
-html.dark .loading-wrapper,
-html.dark .empty-state {
-  background: #14131a !important;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-}
-html.dark .filter-pill {
-  background: #1c1b24;
-  color: var(--text-muted);
-}
-html.dark .filter-pill:hover {
-  background: #26242e;
-  color: var(--text-secondary);
-}
-html.dark .filter-pill.active {
-  background: linear-gradient(135deg, #4a3f60, #5a4e70);
-  color: #fff;
-}
-html.dark .card-title {
-  color: var(--text-primary);
-}
-html.dark .card-desc {
-  color: var(--text-secondary);
-}
-html.dark .card-img {
-  background: #14131a !important;
-}
-html.dark .tech-chip {
-  background: #1c1b24;
-  color: var(--text-secondary);
-}
-html.dark .tech-chip:hover {
-  background: #3a3450;
-  color: #ece8e4;
-}
-html.dark .card-footer {
-  border-top-color: #1e1d26;
-}
-html.dark .card-date {
-  color: var(--text-muted);
-}
-html.dark .action-icon-btn {
-  background: #1c1b24 !important;
-  color: var(--text-muted) !important;
-}
-html.dark .search-input .el-input__wrapper {
-  background: #14131a !important;
-  border-color: #1e1d26 !important;
-}
-html.dark .detail-section-title,
-html.dark .detail-project-title {
-  color: var(--text-primary);
-}
-html.dark .detail-meta-item {
-  color: var(--text-muted);
-}
-html.dark .detail-desc-content {
-  background: var(--bg-elevated);
-}
-html.dark .detail-desc-content p {
-  color: var(--text-secondary);
-}
-html.dark .detail-tech-tag {
-  background: #1c1b24;
-  color: var(--text-secondary);
-}
-html.dark .detail-tech-tag:hover {
-  background: linear-gradient(135deg, #4a3f60, #5a4e70);
-  color: #ece8e4;
-}
-html.dark .detail-hero-fallback {
-  background: #14131a !important;
+/* 颗粒反相，夜色里才看得见 */
+html.dark .projects-page::before,
+html.dark .message-page::before {
+  filter: invert(1);
+  opacity: 0.35;
 }
 
-/* ---- MessageBoard (深紫色沉浸) ---- */
-html.dark .message-page {
-  background: linear-gradient(135deg, #0e0d14 0%, #0b0b10 100%) !important;
+/* ---- Projects ---- */
+html.dark .project-card:hover {
+  box-shadow: 0 18px 36px -18px rgba(0, 0, 0, 0.75);
 }
-html.dark .post-card,
-html.dark .empty-state,
-html.dark .skeleton-card,
-html.dark .side-card {
-  background: #14131a !important;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+html.dark .card-img-fallback {
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 12px, rgba(236, 230, 218, 0.05) 12px 13px),
+    linear-gradient(160deg, #201d19 0%, #171512 100%);
 }
-html.dark .post-card-header {
-  background: linear-gradient(135deg, #4a3f60 0%, #3e4260 100%);
+html.dark .fallback-icon { color: rgba(236, 230, 218, 0.2); }
+html.dark .detail-hero-fallback {
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 14px, rgba(236, 230, 218, 0.05) 14px 15px),
+    linear-gradient(160deg, #201d19 0%, #171512 100%);
 }
-html.dark .post-card-body {
-  background: #14131a;
+html.dark .detail-hero-icon { color: rgba(236, 230, 218, 0.22); }
+html.dark .detail-desc-content {
+  background: rgba(236, 230, 218, 0.045);
 }
-html.dark .soft-input .el-textarea__inner,
-html.dark .soft-input .el-input__wrapper {
-  background: #1c1b24 !important;
-  border-color: #24222e !important;
-  color: var(--text-secondary);
+html.dark .detail-dialog .el-dialog {
+  background: var(--paper-raised);
+  border-color: var(--line-strong);
 }
-html.dark .soft-input .el-textarea__inner:focus,
-html.dark .soft-input .el-input__wrapper.is-focus {
-  border-color: #5a5070 !important;
-  background: #1e1d26 !important;
+html.dark .detail-link-btn:hover { background: var(--paper-raised); }
+
+/* ---- MessageBoard ---- */
+html.dark .stamp-img {
+  mix-blend-mode: normal;
+  opacity: 0.9;
 }
-html.dark .soft-input .el-textarea__inner:hover,
-html.dark .soft-input .el-input__wrapper:hover {
-  border-color: #3a3650 !important;
+html.dark .entry-card:hover {
+  box-shadow: 0 14px 32px -18px rgba(0, 0, 0, 0.8);
 }
-html.dark .message-card {
-  background: #14131a !important;
+html.dark .msg-ledger-item.is-pinned .entry-card {
+  background: linear-gradient(105deg, rgba(214, 85, 47, 0.1), var(--paper-raised) 38%);
 }
-html.dark .message-card.is-own {
-  background: linear-gradient(135deg, #1a1822 0%, #14131a 100%) !important;
-  border-color: #24222e !important;
+html.dark .entry-avatar {
+  background: #ece6da;
+  color: #1a1815;
+  border-color: var(--line-strong);
 }
-html.dark .message-card.is-pinned {
-  border-color: #4a3f60 !important;
-  background: linear-gradient(135deg, #1a1822 0%, #14131a 100%) !important;
-}
-html.dark .msg-nickname { color: var(--text-primary); }
-html.dark .self-tag { background: #24222e; color: var(--text-secondary); }
-html.dark .msg-time { color: var(--text-muted); }
-html.dark .msg-content { color: var(--text-primary); }
-html.dark .action-btn { color: var(--text-muted); }
-html.dark .action-btn:hover { background: #1e1d26; }
-html.dark .like-btn:hover,
-html.dark .like-btn.liked { background: #2a1820 !important; color: #d9534f; }
-html.dark .reply-btn:hover { background: #1e1d26; color: var(--text-secondary); }
-html.dark .pin-btn:hover,
-html.dark .pin-btn.pinned { background: #2a2518 !important; color: #b8953a; }
-html.dark .delete-btn:hover { background: #2a1820 !important; color: #d9534f; }
-html.dark .reply-item {
-  background: #1c1b24 !important;
-  border-left-color: #2a2638;
-}
-html.dark .reply-item:hover { background: #1e1d26; }
-html.dark .reply-own {
-  background: #1e1c26 !important;
-  border-left-color: #4a3f60;
-}
-html.dark .reply-own:hover { background: #22202a; }
-html.dark .reply-avatar { background: #2a2638; }
-html.dark .reply-nickname { color: var(--text-primary); }
-html.dark .reply-content { color: var(--text-secondary); }
-html.dark .reply-target { background: #1e1c26; color: var(--text-secondary); }
-html.dark .reply-time { color: var(--text-muted); }
-html.dark .reply-form { background: #1c1b24 !important; border-color: #24222e !important; }
-html.dark .reply-form-header { color: var(--text-secondary); }
-html.dark .reply-submit-btn {
-  background: linear-gradient(135deg, #4a3f60, #3e4260) !important;
-}
-html.dark .message-count { color: var(--text-muted); }
-html.dark .message-count strong { color: var(--text-secondary); }
-html.dark .bar-line { background: linear-gradient(90deg, #24222e, transparent); }
-html.dark .side-card-header {
-  color: var(--text-primary);
-  border-bottom-color: #1e1d26;
-}
-html.dark .profile-name { color: var(--text-primary); }
-html.dark .profile-desc { color: var(--text-muted); }
-html.dark .profile-stat-num { color: var(--text-secondary); }
-html.dark .profile-stat-label { color: var(--text-muted); }
-html.dark .stat-key { color: var(--text-muted); }
-html.dark .stat-val { color: var(--text-secondary); }
-html.dark .stat-val.highlight { color: var(--text-secondary); }
-html.dark .stat-divider { background: #1e1d26; }
-html.dark .divider-line { background: #24222e; }
-html.dark .divider-text { color: var(--text-muted); }
+html.dark .entry-avatar.has-img { background: none; }
+html.dark .act:hover { background: rgba(236, 230, 218, 0.07); }
+html.dark .reply-item::before { background: var(--paper-raised); }
+html.dark .reply-form { background: rgba(236, 230, 218, 0.035); }
+html.dark .empty-state { background: rgba(28, 25, 23, 0.5); }
 html.dark .skeleton-avatar,
 html.dark .skeleton-line {
-  background: linear-gradient(90deg, #1c1b24 25%, #22202a 50%, #1c1b24 75%) !important;
+  background: linear-gradient(90deg, #221f1b 25%, #2b2723 50%, #221f1b 75%) !important;
   background-size: 200% 100%;
 }
 

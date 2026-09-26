@@ -32,23 +32,6 @@ const form = ref({
   sort: 0
 })
 
-const coverGradients = [
-  'linear-gradient(135deg, #9e92b0 0%, #8a8eaa 100%)',
-  'linear-gradient(135deg, #b8aec8 0%, #a0a4ba 100%)',
-  'linear-gradient(135deg, #a898b8 0%, #8e9ab0 100%)',
-  'linear-gradient(135deg, #c4b8d0 0%, #a8b0c4 100%)',
-  'linear-gradient(135deg, #b0a4c0 0%, #98a0b8 100%)',
-  'linear-gradient(135deg, #a49cb8 0%, #8e94ac 100%)',
-]
-
-// 状态配置
-const statusConfig = {
-  '已完成': { type: 'success', color: '#67c23a' },
-  '开发中': { type: 'warning', color: '#e6a23c' },
-  '学习中': { type: 'primary', color: '#409eff' },
-}
-const defaultStatus = { type: 'info', color: '#909399' }
-
 // 详情弹窗
 const detailVisible = ref(false)
 const detailProject = ref(null)
@@ -189,119 +172,113 @@ onMounted(async () => {
 
 <template>
   <div class="projects-page" :class="{ 'page-loaded': pageLoaded }">
-    <!-- 统一顶部栏 -->
-    <div class="top-card">
-      <div class="top-card-header">
-        <div class="top-card-text">
-          <h1 class="top-title">项目展示</h1>
-          <p class="top-subtitle">一些我做过的项目</p>
-        </div>
-      </div>
-
-      <!-- 工具栏：搜索 + 分类标签 + 按钮 -->
-      <div class="top-card-toolbar">
-        <div class="toolbar-left-group">
-          <el-input
+    <!-- ===== 卷首：档案页眉 ===== -->
+    <header class="page-head">
+      <p class="head-kicker">W O R K S · 手 作 档 案</p>
+      <h1 class="head-title">项目<span class="head-title-accent">集</span></h1>
+      <p class="head-sub">—— 从想法到落地，这里收着几件得意的作品</p>
+      <div class="head-meta">
+        <span class="head-meta-item">
+          已收录 <em>{{ filteredProjects.length }}</em> 件
+          <template v-if="activeCategory || searchKeyword">· 已筛选</template>
+        </span>
+        <label class="head-search">
+          <el-icon :size="13"><Search /></el-icon>
+          <input
             v-model="searchKeyword"
-            placeholder="搜索项目..."
-            :prefix-icon="Search"
-            clearable
-            class="search-input"
-            @clear="resetFilter"
+            type="text"
+            placeholder="检索项目…"
+            class="head-search-input"
           />
-          <div class="category-filters">
-            <span
-              class="filter-pill"
-              :class="{ active: !activeCategory }"
-              @click="activeCategory = ''"
-            >全部</span>
-            <span
-              v-for="cat in categories"
-              :key="cat"
-              class="filter-pill"
-              :class="{ active: activeCategory === cat }"
-              @click="activeCategory = cat"
-            >{{ cat }}</span>
-          </div>
-        </div>
-        <div class="toolbar-right-group">
-          <el-button text :icon="Refresh" @click="resetFilter" v-if="activeCategory || searchKeyword" class="reset-btn">重置</el-button>
-          <el-button v-if="isAdmin" type="primary" :icon="Plus" class="add-btn" @click="openAdd">添加项目</el-button>
-        </div>
+          <button v-if="searchKeyword" class="head-search-clear" @click="resetFilter">×</button>
+        </label>
+        <button v-if="isAdmin" class="head-add" @click="openAdd">
+          <el-icon :size="13"><Plus /></el-icon> 登记新项目
+        </button>
       </div>
-    </div>
+    </header>
 
-    <!-- 内容区 -->
+    <!-- ===== 分类横档 ===== -->
+    <nav class="shelf-nav" v-if="categories.length">
+      <button
+        class="shelf-tab"
+        :class="{ active: !activeCategory }"
+        @click="activeCategory = ''"
+      >全部</button>
+      <button
+        v-for="cat in categories"
+        :key="cat"
+        class="shelf-tab"
+        :class="{ active: activeCategory === cat }"
+        @click="activeCategory = cat"
+      >{{ cat }}</button>
+      <button
+        v-if="activeCategory || searchKeyword"
+        class="shelf-tab shelf-reset"
+        @click="resetFilter"
+      ><el-icon :size="12"><Refresh /></el-icon> 重置</button>
+    </nav>
+
+    <!-- ===== 内容区 ===== -->
     <div class="content-body">
       <div v-if="loading" class="loading-wrapper">
         <el-skeleton :rows="3" animated />
       </div>
 
-      <el-row v-else :gutter="16" class="project-grid">
-        <el-col
+      <div v-else class="project-grid">
+        <article
           v-for="(project, index) in filteredProjects"
           :key="project.id"
-          :xs="24"
-          :sm="12"
-          :md="8"
-          :lg="6"
-          class="project-col"
+          class="project-card"
+          :style="{ '--i': index }"
+          @click="openDetail(project)"
         >
-          <div
-            class="project-card"
-            :style="{ '--i': index }"
-            @click="openDetail(project)"
-          >
-            <div class="card-img" @click.stop="openDetail(project)">
-              <img v-if="project.imgUrl" :src="project.imgUrl" alt="" />
-              <div v-else class="card-img-fallback" :style="{ background: coverGradients[index % coverGradients.length] }">
-                <span class="fallback-icon">{{ project.title?.charAt(0) || 'P' }}</span>
-              </div>
-              <div class="card-img-overlay">
-                <el-icon :size="28"><Link /></el-icon>
-              </div>
+          <div class="card-img">
+            <img v-if="project.imgUrl" :src="project.imgUrl" alt="" loading="lazy" />
+            <div v-else class="card-img-fallback">
+              <span class="fallback-icon">{{ project.title?.charAt(0) || 'P' }}</span>
             </div>
-            <div class="card-body">
-              <div class="card-top">
-                <h3 class="card-title">{{ project.title }}</h3>
-                <div class="card-top-right">
-                  <span
-                    v-if="project.status"
-                    class="status-badge"
-                    :style="{ background: (statusConfig[project.status] || defaultStatus).color }"
-                  >{{ project.status }}</span>
-                </div>
-              </div>
-              <p class="card-desc">{{ project.description }}</p>
-              <div class="tech-stack" v-if="project.techStack">
-                <span class="tech-chip" v-for="tech in project.techStack.split(',')" :key="tech">
-                  {{ tech.trim() }}
-                </span>
-              </div>
-              <div class="card-footer">
-                <span class="card-date">
-                  <el-icon :size="13"><Calendar /></el-icon>
-                  {{ formatDate(project.createTime) }}
-                </span>
-                <div class="card-actions" v-if="isAdmin">
-                  <el-tooltip content="编辑" placement="top">
-                    <el-button class="action-icon-btn" size="small" :icon="Edit" circle @click.stop="(e) => openEdit(project, e)" />
-                  </el-tooltip>
-                  <el-tooltip content="删除" placement="top">
-                    <el-button class="action-icon-btn delete-btn-action" size="small" :icon="Delete" circle @click.stop="(e) => deleteProject(project, e)" />
-                  </el-tooltip>
-                </div>
+            <span class="card-serial">Nº {{ String(index + 1).padStart(2, '0') }}</span>
+          </div>
+          <div class="card-body">
+            <div class="card-top">
+              <h3 class="card-title">{{ project.title }}</h3>
+              <span
+                v-if="project.status"
+                class="status-badge"
+                :data-status="project.status"
+              >{{ project.status }}</span>
+            </div>
+            <p class="card-desc">{{ project.description }}</p>
+            <div class="tech-stack" v-if="project.techStack">
+              <span class="tech-chip" v-for="tech in project.techStack.split(',')" :key="tech">
+                {{ tech.trim() }}
+              </span>
+            </div>
+            <div class="card-footer">
+              <span class="card-date">
+                <el-icon :size="12"><Calendar /></el-icon>
+                {{ formatDate(project.createTime) }}
+              </span>
+              <span class="card-more">查看详情 →</span>
+              <div class="card-actions" v-if="isAdmin">
+                <el-tooltip content="编辑" placement="top">
+                  <el-button class="action-icon-btn" size="small" :icon="Edit" circle @click.stop="(e) => openEdit(project, e)" />
+                </el-tooltip>
+                <el-tooltip content="删除" placement="top">
+                  <el-button class="action-icon-btn delete-btn-action" size="small" :icon="Delete" circle @click.stop="(e) => deleteProject(project, e)" />
+                </el-tooltip>
               </div>
             </div>
           </div>
-        </el-col>
+        </article>
 
-        <el-col v-if="filteredProjects.length === 0 && !loading" :span="24">
-          <div class="empty-state">
-            <el-empty :description="searchKeyword || activeCategory ? '没有匹配的项目' : '暂无项目'" />
-          </div>
-        </el-col>
-      </el-row>
+        <div v-if="filteredProjects.length === 0 && !loading" class="empty-state">
+          <p class="empty-mark">空</p>
+          <p class="empty-text">{{ searchKeyword || activeCategory ? '这一格架子还是空的，换个条件试试' : '架子还没摆上东西' }}</p>
+          <button v-if="searchKeyword || activeCategory" class="empty-reset" @click="resetFilter">清空筛选</button>
+        </div>
+      </div>
     </div>
 
     <!-- ===== 项目详情弹窗 ===== -->
@@ -322,7 +299,7 @@ onMounted(async () => {
               <span
                 v-if="detailProject.status"
                 class="hero-badge"
-                :style="{ background: (statusConfig[detailProject.status] || defaultStatus).color }"
+                :data-status="detailProject.status"
               >{{ detailProject.status }}</span>
               <span v-if="detailProject.category" class="hero-badge hero-badge-cat">{{ detailProject.category }}</span>
             </div>
@@ -330,15 +307,14 @@ onMounted(async () => {
         </div>
 
         <!-- 无封面时的占位 -->
-        <div v-else class="detail-hero detail-hero-fallback"
-          :style="{ background: coverGradients[detailProject.id % coverGradients.length] }">
+        <div v-else class="detail-hero detail-hero-fallback">
           <div class="detail-hero-placeholder">
             <span class="detail-hero-icon">{{ detailProject.title?.charAt(0) || 'P' }}</span>
             <div class="detail-hero-meta">
               <span
                 v-if="detailProject.status"
                 class="hero-badge"
-                :style="{ background: (statusConfig[detailProject.status] || defaultStatus).color }"
+                :data-status="detailProject.status"
               >{{ detailProject.status }}</span>
               <span v-if="detailProject.category" class="hero-badge hero-badge-cat">{{ detailProject.category }}</span>
             </div>
@@ -486,224 +462,333 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* ========== 纸墨档案室 · 设计令牌 ========== */
 .projects-page {
+  --paper: #f0ece1;
+  --paper-raised: #faf7ee;
+  --ink: #2b2722;
+  --ink-2: #645d51;
+  --ink-3: #948c7b;
+  --line: #ddd5c3;
+  --line-strong: #c2b89d;
+  --vermilion: #b23e22;
+  --vermilion-deep: #93321a;
+  --serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  --mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, 'Courier New', monospace;
+  --sans: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+
   min-height: 100vh;
-  padding-bottom: 60px;
-  background: linear-gradient(135deg, #f4f5f8 0%, #eae8ee 100%);
+  padding-bottom: 120px;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 400px at 50% -120px, rgba(255, 253, 246, 0.8), transparent 70%),
+    var(--paper);
   opacity: 0;
   transition: opacity 0.5s ease;
+  overflow-x: clip;
+}
+/* 纸面颗粒 */
+.projects-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
 }
 .projects-page.page-loaded { opacity: 1; }
 
-/* ===== 统一顶部栏 ===== */
-.top-card {
-  max-width: 1320px;
-  margin: 28px auto 0;
-  padding: 0 24px;
+/* ========== 卷首：页眉 ========== */
+.page-head {
   position: relative;
-  z-index: 2;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 78px 28px 30px;
+  z-index: 1;
 }
-.top-card-header {
-  background: linear-gradient(135deg, #9e92b0 0%, #8a8eaa 100%);
-  border-radius: 12px 12px 0 0;
-  padding: 34px 28px 24px;
-  text-align: center;
-  color: white;
+.head-kicker {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  color: var(--ink-3);
+  margin: 0 0 20px;
 }
-.top-title {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: 4px;
-  margin: 0 0 6px;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.12);
+.head-kicker::before {
+  content: '';
+  display: inline-block;
+  width: 34px;
+  height: 1px;
+  background: var(--line-strong);
+  vertical-align: middle;
+  margin-right: 14px;
+  transform: translateY(-2px);
 }
-.top-subtitle {
-  font-size: 0.95rem;
-  opacity: 0.8;
-  letter-spacing: 2px;
-  font-weight: 300;
-  margin: 0;
+.head-title {
+  font-family: var(--serif);
+  font-size: clamp(3.2rem, 7.5vw, 5.4rem);
+  font-weight: 900;
+  line-height: 1.05;
+  margin: 0 0 14px;
+  color: var(--ink);
+  text-wrap: balance;
 }
-
-/* ===== 工具栏（搜索 + 分类标签 + 按钮） ===== */
-.top-card-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  background: #fff;
-  padding: 14px 24px;
-  border-radius: 0 0 12px 12px;
-  flex-wrap: wrap;
+.head-title-accent { color: var(--vermilion); }
+.head-sub {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--ink-2);
+  margin: 0 0 34px;
 }
-.toolbar-left-group {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-  flex-wrap: wrap;
-}
-.toolbar-right-group {
+.head-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.search-input { width: 200px; }
-.search-input :deep(.el-input__wrapper) {
-  border-radius: 8px;
-  border: 1.5px solid #e4e4ea;
-  box-shadow: none !important;
-  transition: border-color 0.25s, box-shadow 0.25s;
-  background: #fafafc;
-}
-.search-input :deep(.el-input__wrapper:hover) { border-color: #c8c4d4; }
-.search-input :deep(.el-input__wrapper.is-focus) {
-  border-color: #9e92b0;
-  box-shadow: 0 0 0 3px rgba(158,146,176,0.12) !important;
-  background: #fff;
-}
-
-/* ===== 分类筛选药丸标签 ===== */
-.category-filters {
-  display: flex;
+  gap: 22px;
   flex-wrap: wrap;
-  gap: 6px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
-.filter-pill {
-  font-size: 0.82rem;
-  padding: 4px 14px;
-  border-radius: 20px;
-  background: #f0eef5;
-  color: #7a7a8a;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  user-select: none;
+.head-meta-item {
+  font-size: 0.85rem;
+  color: var(--ink-2);
 }
-.filter-pill:hover {
-  background: #e4e0ec;
-  color: #5a5a6a;
-}
-.filter-pill.active {
-  background: #9e92b0;
-  color: #fff;
+.head-meta-item em {
+  font-family: var(--mono);
+  font-style: normal;
   font-weight: 600;
+  color: var(--vermilion);
+  margin: 0 2px;
 }
 
-.add-btn {
-  border-radius: 8px;
-  background: linear-gradient(135deg, #9e92b0, #8a8eaa);
+/* 检索（墨线输入） */
+.head-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line-strong);
+  padding: 4px 2px;
+  color: var(--ink-3);
+  transition: border-color 0.25s;
+}
+.head-search:focus-within { border-bottom-color: var(--vermilion); color: var(--vermilion); }
+.head-search-input {
   border: none;
-  padding: 8px 18px;
-  font-weight: 600;
-  transition: transform 0.2s, box-shadow 0.25s;
+  background: transparent;
+  outline: none;
+  font-family: var(--sans);
+  font-size: 0.86rem;
+  color: var(--ink);
+  width: 150px;
+  padding: 2px 0;
 }
-.add-btn:hover {
-  transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 4px 14px rgba(158,146,176,0.35);
-  background: linear-gradient(135deg, #8e82a0, #7a7e9a);
+.head-search-input::placeholder { color: var(--ink-3); }
+.head-search-clear {
+  border: none;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
 }
-.add-btn:active { transform: scale(0.97); }
+.head-search-clear:hover { color: var(--vermilion); }
 
-.reset-btn { margin-left: 0; }
+.head-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  border: 1px solid var(--vermilion);
+  background: transparent;
+  color: var(--vermilion);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 7px 18px;
+  cursor: pointer;
+  transition: background 0.22s, color 0.22s, transform 0.15s;
+}
+.head-add:hover {
+  background: var(--vermilion);
+  color: var(--paper-raised);
+  transform: translateY(-1px);
+}
+.head-add:active { transform: translateY(0); }
+
+/* ========== 分类横档 ========== */
+.shelf-nav {
+  position: relative;
+  z-index: 1;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: flex-end;
+  gap: 30px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.shelf-nav::-webkit-scrollbar { display: none; }
+.shelf-tab {
+  position: relative;
+  border: none;
+  background: none;
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  color: var(--ink-3);
+  padding: 12px 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.22s;
+}
+.shelf-tab::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 2px;
+  background: var(--vermilion);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.shelf-tab:hover { color: var(--ink); }
+.shelf-tab.active {
+  color: var(--vermilion);
+  font-weight: 600;
+}
+.shelf-tab.active::after { transform: scaleX(1); }
+.shelf-reset {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-3);
+}
+.shelf-reset:hover { color: var(--vermilion); }
 
 /* ===== 内容区 ===== */
 .content-body {
-  max-width: 1320px;
+  position: relative;
+  z-index: 1;
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 24px 24px 0;
+  padding: 36px 28px 0;
 }
 .loading-wrapper {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
   padding: 40px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04);
 }
 .project-grid {
   min-height: 200px;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 22px;
 }
-.project-col { margin-bottom: 16px; }
 
-/* ===== 项目卡片 ===== */
+/* ===== 项目档卡 ===== */
 .project-card {
-  background: #fff;
-  border-radius: 8px;
+  position: relative;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04);
-  transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 0.35s ease;
   display: flex;
   flex-direction: column;
-  height: 100%;
   cursor: pointer;
   opacity: 0;
   transform: translateY(18px);
+  box-shadow: 0 1px 0 rgba(43, 39, 34, 0.02);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s,
+    box-shadow 0.3s;
 }
 .page-loaded .project-card {
-  animation: cardFadeIn 0.45s ease forwards;
-  animation-delay: calc(var(--i) * 0.07s);
+  animation: cardFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--i) * 0.06s);
 }
 @keyframes cardFadeIn {
   to { opacity: 1; transform: translateY(0); }
 }
 .project-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08);
+  transform: translateY(-5px);
+  border-color: var(--ink);
+  box-shadow: 0 16px 34px -14px rgba(43, 39, 34, 0.28);
 }
+/* 左上角朱批标记 */
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 26px 26px 0 0;
+  border-color: var(--vermilion) transparent transparent transparent;
+  opacity: 0;
+  transition: opacity 0.25s;
+  z-index: 3;
+}
+.project-card:hover::before { opacity: 1; }
 
 /* ===== 卡片封面 ===== */
 .card-img {
   position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  cursor: pointer;
-  background: #eee;
+  background: #e8e2d2;
+  border-bottom: 1px solid var(--line);
 }
 .card-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.45s ease;
+  display: block;
+  filter: saturate(0.82) contrast(1.02);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), filter 0.4s;
 }
-.project-card:hover .card-img img { transform: scale(1.06); }
+.project-card:hover .card-img img {
+  transform: scale(1.05);
+  filter: saturate(1);
+}
+/* 无封面：斜纹纸 + 大号题字 */
 .card-img-fallback {
   width: 100%;
   height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: filter 0.3s;
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 12px, rgba(43, 39, 34, 0.035) 12px 13px),
+    linear-gradient(160deg, #f3eee1 0%, #e9e2cf 100%);
 }
-.project-card:hover .card-img-fallback { filter: brightness(1.08); }
 .fallback-icon {
-  font-size: 2.4rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.7);
-  letter-spacing: 2px;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  font-family: var(--serif);
+  font-size: 4rem;
+  font-weight: 900;
+  color: rgba(43, 39, 34, 0.16);
+  line-height: 1;
 }
-.card-img-overlay {
+/* 编号 */
+.card-serial {
   position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 0;
-  transition: opacity 0.3s;
-  color: white;
-  backdrop-filter: blur(0);
-}
-.card-img:hover .card-img-overlay {
-  opacity: 1;
-  backdrop-filter: blur(2px);
+  right: 12px;
+  bottom: 10px;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  padding: 2px 8px;
 }
 
 /* ===== 卡片主体 ===== */
 .card-body {
-  padding: 16px 18px 14px;
+  padding: 18px 20px 14px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -712,41 +797,44 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.card-top-right {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
 }
 .card-title {
-  font-size: 1.08rem;
+  font-family: var(--serif);
+  font-size: 1.18rem;
   font-weight: 700;
-  color: #2d2d3a;
+  color: var(--ink);
   margin: 0;
-  line-height: 1.35;
+  line-height: 1.4;
   flex: 1;
+  transition: color 0.2s;
 }
+.project-card:hover .card-title { color: var(--vermilion); }
 
-/* ===== 状态标签 ===== */
+/* ===== 状态小印 ===== */
 .status-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 100px;
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  padding: 3px 9px;
+  border: 1px solid var(--ink-3);
+  color: var(--ink-2);
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  margin-top: 3px;
 }
+.status-badge[data-status='已完成'] {
+  border-color: var(--vermilion);
+  color: var(--vermilion);
+}
+.status-badge[data-status='开发中'] { border-style: dashed; }
+.status-badge[data-status='学习中'] { opacity: 0.75; }
 
 .card-desc {
-  color: #777;
+  color: var(--ink-2);
   font-size: 0.85rem;
-  line-height: 1.6;
+  line-height: 1.75;
   margin: 0 0 12px;
   flex: 1;
   display: -webkit-box;
@@ -755,72 +843,121 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-/* ===== 技术栈 ===== */
+/* ===== 技术栈 · 斜杠清单 ===== */
 .tech-stack {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
+  align-items: center;
+  row-gap: 3px;
+  margin-bottom: 14px;
 }
 .tech-chip {
-  font-size: 0.72rem;
-  background: #f0eef5;
-  color: #7a7a8a;
-  padding: 2px 10px;
-  border-radius: 12px;
-  transition: background 0.2s, color 0.2s, transform 0.2s;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
   cursor: default;
+  transition: color 0.2s;
 }
-.tech-chip:hover {
-  background: #9e92b0;
-  color: #fff;
-  transform: translateY(-1px);
+.tech-chip + .tech-chip::before {
+  content: '/';
+  color: var(--line-strong);
+  margin: 0 7px;
 }
+.project-card:hover .tech-chip { color: var(--ink-2); }
 
 /* ===== 卡片底部 ===== */
 .card-footer {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 10px;
-  border-top: 1px solid #f0eef4;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
 }
 .card-date {
-  font-size: 0.76rem;
-  color: #aaa;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-3);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+}
+.card-more {
+  font-size: 0.76rem;
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.25s, transform 0.25s, color 0.25s;
+}
+.project-card:hover .card-more {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--vermilion);
 }
 .card-actions {
+  position: absolute;
+  right: 0;
+  bottom: 7px;
   display: flex;
   gap: 6px;
   opacity: 0;
   transition: opacity 0.2s;
+  background: var(--paper-raised);
+  padding-left: 6px;
 }
 .project-card:hover .card-actions { opacity: 1; }
 .action-icon-btn {
-  background: #f5f5f5 !important;
-  border: none !important;
-  color: #888 !important;
-  transition: background 0.2s, color 0.2s, transform 0.15s !important;
+  background: transparent !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink-3) !important;
+  transition: border-color 0.2s, color 0.2s, transform 0.15s !important;
 }
 .action-icon-btn:hover {
-  color: #409eff !important;
-  background: #ecf5ff !important;
+  color: var(--ink) !important;
+  border-color: var(--ink) !important;
   transform: scale(1.08);
 }
 .delete-btn-action:hover {
-  color: #e74c3c !important;
-  background: #fef0f0 !important;
+  color: var(--vermilion) !important;
+  border-color: var(--vermilion) !important;
 }
 
 /* ===== 空态 ===== */
 .empty-state {
-  background: #fff;
-  border-radius: 12px;
-  padding: 60px 0;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04);
+  grid-column: 1 / -1;
+  background: var(--paper-raised);
+  border: 1px dashed var(--line-strong);
+  padding: 70px 20px;
+  text-align: center;
+}
+.empty-mark {
+  font-family: var(--serif);
+  font-size: 3.4rem;
+  font-weight: 900;
+  color: var(--line-strong);
+  margin: 0 0 10px;
+  line-height: 1;
+}
+.empty-text {
+  color: var(--ink-3);
+  font-size: 0.9rem;
+  margin: 0 0 20px;
+}
+.empty-reset {
+  border: 1px solid var(--ink-3);
+  background: none;
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  padding: 7px 20px;
+  cursor: pointer;
+  transition: all 0.22s;
+}
+.empty-reset:hover {
+  border-color: var(--vermilion);
+  color: var(--vermilion);
 }
 
 /* ===== 项目详情弹窗 ===== */
@@ -829,6 +966,10 @@ onMounted(async () => {
 }
 .detail-dialog :deep(.el-dialog__header) {
   display: none;
+}
+.detail-dialog :deep(.el-dialog) {
+  border-radius: 2px;
+  border: 1px solid var(--line-strong);
 }
 .detail-body {
   overflow: hidden;
@@ -840,7 +981,7 @@ onMounted(async () => {
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: #eee;
+  background: #e8e2d2;
 }
 .detail-hero img {
   width: 100%;
@@ -851,7 +992,7 @@ onMounted(async () => {
 .detail-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 50%, rgba(0,0,0,0.6));
+  background: linear-gradient(transparent 55%, rgba(30, 26, 20, 0.62));
   display: flex;
   align-items: flex-end;
   padding: 20px 24px;
@@ -860,14 +1001,18 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 14px, rgba(43, 39, 34, 0.04) 14px 15px),
+    linear-gradient(160deg, #f3eee1 0%, #e6dec8 100%);
 }
 .detail-hero-placeholder {
   text-align: center;
 }
 .detail-hero-icon {
-  font-size: 4rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.6);
+  font-family: var(--serif);
+  font-size: 4.6rem;
+  font-weight: 900;
+  color: rgba(43, 39, 34, 0.18);
   display: block;
   margin-bottom: 12px;
 }
@@ -875,21 +1020,26 @@ onMounted(async () => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: center;
 }
+.detail-hero-overlay .detail-hero-meta { justify-content: flex-start; }
 .hero-badge {
   display: inline-block;
   padding: 3px 12px;
-  border-radius: 100px;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  border: 1px solid var(--ink-3);
+  color: var(--ink-2);
+  background: var(--paper-raised);
+}
+.hero-badge[data-status='已完成'] {
+  border-color: var(--vermilion);
+  color: var(--vermilion);
 }
 .hero-badge-cat {
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(4px);
+  border-color: var(--line-strong);
 }
 
 /* ---- 标题区域 ---- */
@@ -897,9 +1047,10 @@ onMounted(async () => {
   padding: 28px 28px 0;
 }
 .detail-project-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #1a1a1a;
+  font-family: var(--serif);
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: var(--ink);
   margin: 0 0 12px;
   line-height: 1.35;
 }
@@ -912,13 +1063,15 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.82rem;
-  color: #999;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--ink-3);
 }
 
 /* ---- 分割线 ---- */
 .detail-divider {
   margin: 20px 28px;
+  border-color: var(--line);
 }
 
 /* ---- 章节 ---- */
@@ -929,27 +1082,27 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 1rem;
+  font-family: var(--serif);
+  font-size: 1.02rem;
   font-weight: 700;
-  color: #333;
+  color: var(--ink);
   margin: 0 0 14px;
 }
 .section-title-dot {
   display: inline-block;
   width: 4px;
-  height: 18px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #9e92b0, #8a8eaa);
+  height: 17px;
+  background: var(--vermilion);
 }
 .detail-desc-content {
-  background: #f8f7fa;
-  border-radius: 10px;
+  background: rgba(43, 39, 34, 0.035);
+  border: 1px solid var(--line);
   padding: 18px 20px;
 }
 .detail-desc-content p {
-  color: #555;
+  color: var(--ink-2);
   font-size: 0.92rem;
-  line-height: 1.8;
+  line-height: 1.9;
   margin: 0;
   white-space: pre-wrap;
 }
@@ -961,19 +1114,17 @@ onMounted(async () => {
   gap: 8px;
 }
 .detail-tech-tag {
-  font-size: 0.8rem;
-  padding: 6px 16px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #f0eef5, #e8e5f0);
-  color: #5a4e70;
-  font-weight: 500;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  padding: 5px 14px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-2);
   transition: all 0.2s;
   cursor: default;
 }
 .detail-tech-tag:hover {
-  background: linear-gradient(135deg, #9e92b0, #8a8eaa);
-  color: #fff;
-  transform: translateY(-1px);
+  border-color: var(--vermilion);
+  color: var(--vermilion);
 }
 
 /* ---- 链接按钮 ---- */
@@ -981,7 +1132,7 @@ onMounted(async () => {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 0 28px 24px;
+  padding: 0 28px 28px;
 }
 .detail-link-btn {
   display: flex;
@@ -989,18 +1140,29 @@ onMounted(async () => {
   align-items: flex-start;
   height: auto;
   padding: 12px 20px;
-  border-radius: 10px;
+  border-radius: 2px;
   line-height: 1.4;
   min-width: 160px;
   flex: 1;
+  border: 1px solid var(--line-strong);
+  background: var(--paper-raised);
+  color: var(--ink);
+  transition: border-color 0.22s, color 0.22s, transform 0.18s;
+}
+.detail-link-btn:hover {
+  border-color: var(--vermilion);
+  color: var(--vermilion);
+  transform: translateY(-1px);
+  background: var(--paper-raised);
 }
 .detail-link-btn span {
   font-size: 0.9rem;
   font-weight: 600;
 }
 .link-hint {
-  font-size: 0.7rem;
-  opacity: 0.6;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  opacity: 0.55;
   font-weight: 400;
   margin-top: 2px;
   word-break: break-all;
@@ -1011,23 +1173,26 @@ onMounted(async () => {
 
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
-  .top-card-header { padding: 26px 20px 20px; }
-  .top-title { font-size: 1.5rem; }
-  .top-card-toolbar { flex-direction: column; align-items: stretch; }
-  .toolbar-left-group { flex-direction: column; align-items: stretch; }
-  .toolbar-right-group { justify-content: flex-end; }
-  .search-input { width: 100%; }
-  .category-filters { justify-content: center; }
-  .content-body { padding: 16px 16px 0; }
-  .top-card { padding: 0 16px; }
+  .page-head { padding: 56px 20px 22px; }
+  .head-sub { margin-bottom: 26px; }
+  .head-meta { gap: 16px; }
+  .head-add { margin-left: 0; }
+  .shelf-nav { padding: 0 20px; gap: 22px; }
+  .content-body { padding: 26px 20px 0; }
+  .project-grid { grid-template-columns: 1fr; gap: 18px; }
   .card-actions { opacity: 1; }
+  .card-more { display: none; }
   .project-card { animation: cardFadeIn 0.45s ease forwards; }
   .detail-dialog :deep(.el-dialog) { width: 92vw !important; }
-  .detail-body { padding: 16px; }
-  .detail-meta { gap: 6px; }
-  .detail-date { margin-left: 0; width: 100%; }
   .project-form .el-row { flex-direction: column; }
   .project-form .el-row .el-col { width: 100%; }
+}
+
+/* 尊重减弱动效 */
+@media (prefers-reduced-motion: reduce) {
+  .projects-page { transition: none; opacity: 1; }
+  .page-loaded .project-card { animation: none; opacity: 1; transform: none; }
+  .project-card { transition: border-color 0.2s; }
 }
 
 </style>
