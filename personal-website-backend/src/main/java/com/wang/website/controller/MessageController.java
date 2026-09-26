@@ -8,6 +8,7 @@ import com.wang.website.entity.Resume;
 import com.wang.website.mapper.MessageMapper;
 import com.wang.website.mapper.ResumeMapper;
 import com.wang.website.common.Result;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -70,15 +71,16 @@ public class MessageController {
         }
     }
 
-    // 提交新留言或回复
+    // 提交新留言或回复（管理员身份由后端从 Token 解析，前端无需也无法自报）
     @PostMapping("/add")
-    public Result<String> add(@RequestBody Message message) {
+    public Result<String> add(@RequestBody Message message, HttpServletRequest request) {
         try {
             if (message.getContent() == null || message.getContent().trim().isEmpty()) {
                 return Result.error("内容不能为空哦！");
             }
 
-            if (Boolean.TRUE.equals(message.getIsAdmin())) {
+            boolean isAdmin = request.getAttribute("adminUser") != null;
+            if (isAdmin) {
                 Resume resume = resumeMapper.selectById(1);
                 if (resume != null) {
                     message.setNickname(resume.getName() != null ? resume.getName() : ADMIN_NICKNAME);
@@ -99,7 +101,7 @@ public class MessageController {
             messageMapper.insert(message);
 
             // 管理员回复后，自动通过父留言
-            if (Boolean.TRUE.equals(message.getIsAdmin()) && message.getParentId() != null) {
+            if (isAdmin && message.getParentId() != null) {
                 Message parent = messageMapper.selectById(message.getParentId());
                 if (parent != null && "pending".equals(parent.getStatus())) {
                     parent.setStatus("approved");
@@ -114,14 +116,11 @@ public class MessageController {
         }
     }
 
-    // 点赞
+    // 点赞（原子自增，避免并发读-改-写丢计数）
     @PostMapping("/like/{id}")
     public Result<String> like(@PathVariable Integer id) {
         try {
-            Message msg = messageMapper.selectById(id);
-            if (msg == null) return Result.error("留言不存在");
-            msg.setLikes(msg.getLikes() == null ? 1 : msg.getLikes() + 1);
-            messageMapper.updateById(msg);
+            if (messageMapper.incrLikes(id) == 0) return Result.error("留言不存在");
             return Result.success("点赞成功");
         } catch (Exception e) {
             e.printStackTrace();
@@ -129,14 +128,11 @@ public class MessageController {
         }
     }
 
-    // 取消点赞
+    // 取消点赞（原子自减，下限 0）
     @PostMapping("/unlike/{id}")
     public Result<String> unlike(@PathVariable Integer id) {
         try {
-            Message msg = messageMapper.selectById(id);
-            if (msg == null) return Result.error("留言不存在");
-            msg.setLikes(msg.getLikes() == null ? 0 : Math.max(0, msg.getLikes() - 1));
-            messageMapper.updateById(msg);
+            if (messageMapper.decrLikes(id) == 0) return Result.error("留言不存在");
             return Result.success("已取消点赞");
         } catch (Exception e) {
             e.printStackTrace();

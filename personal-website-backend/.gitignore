@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 敏感配置（本地真实密码） ###
+src/main/resources/application-local.yml
+
+### 用户上传的文件（不进版本库） ###
+uploads/
+
+### 误在前端目录外运行 Vite 产生的缓存 ###
+.vite/

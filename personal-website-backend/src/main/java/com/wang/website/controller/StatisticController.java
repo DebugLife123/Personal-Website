@@ -26,18 +26,33 @@ public class StatisticController {
             QueryWrapper<Statistic> wrapper = new QueryWrapper<Statistic>().eq("date", today);
             Statistic statistic = statisticMapper.selectOne(wrapper);
             if (statistic == null) {
-                // 如果今天还没有统计数据，创建一个新的
+                // GET 不做写操作：今天还没有记录时返回全零对象，不落库
                 statistic = new Statistic();
                 statistic.setDate(today);
                 statistic.setPageViews(0);
                 statistic.setUniqueVisitors(0);
                 statistic.setArticleReads(0);
-                statisticMapper.insert(statistic);
             }
             return Result.success(statistic);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取今日统计数据失败");
+        }
+    }
+
+    /**
+     * 前台访问上报（白名单公开接口）。
+     * 计数完全由服务端原子累加，客户端传数值一律无效，防止伪造流量。
+     */
+    @PostMapping("/visit")
+    public Result<String> visit(@RequestBody(required = false) Map<String, Object> body) {
+        try {
+            boolean firstVisit = body != null && Boolean.TRUE.equals(body.get("firstVisit"));
+            statisticMapper.recordVisit(firstVisit ? 1 : 0);
+            return Result.success("ok");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("记录失败");
         }
     }
 

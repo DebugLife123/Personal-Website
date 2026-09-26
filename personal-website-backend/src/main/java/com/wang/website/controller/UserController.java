@@ -51,6 +51,18 @@ public class UserController {
         }
     }
 
+    /**
+     * 校验当前 Token 是否有效（供前端回源验证登录态）。
+     * 能走到这里说明已通过 AuthInterceptor 的 Token 校验。
+     */
+    @GetMapping("/check")
+    public Result<Map<String, Object>> check(jakarta.servlet.http.HttpServletRequest request) {
+        String username = (String) request.getAttribute("adminUser");
+        Map<String, Object> data = new HashMap<>();
+        data.put("username", username);
+        return Result.success(data);
+    }
+
     @PostMapping("/logout")
     public Result<String> logout(@RequestHeader(value = "Authorization", required = false) String auth) {
         if (auth != null && auth.startsWith("Bearer ")) {

@@ -1,0 +1,7 @@
+# 本地开发专用配置模板
+# 使用方法：复制本文件为 application-local.yml（同目录），填入真实的数据库账号密码。
+# application-local.yml 已被 .gitignore 排除，不会进入版本库。
+spring:
+  datasource:
+    username: root
+    password: 在这里填入你的数据库密码
