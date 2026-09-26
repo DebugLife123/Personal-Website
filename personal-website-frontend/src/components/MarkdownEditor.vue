@@ -56,9 +56,10 @@
         <button class="tb-btn" title="链接" @click="insertLink"><el-icon><Link /></el-icon></button>
         <el-upload
           :action="uploadUrl"
+          :headers="uploadHeaders"
           :show-file-list="false"
           :on-success="imgUploadSuccess"
-          :on-error="() => {}"
+          :on-error="imgUploadError"
           :before-upload="imgBeforeUpload"
           accept="image/*"
           style="display:inline-flex"
@@ -180,6 +181,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
   List, Finished, Remove,
   Link, Picture, Grid, Back, Right, Delete,
@@ -229,8 +231,10 @@ const insertCustomHighlight = () => {
 // Emojis
 const emojis = '😀😃😄😁😆😅😂🤣🙂😊😇🥰😍🤩😘😗😚😋😛😜🤪😝🤑🤗🤭🤫🤔🤐🤨😐😑😶😏😒🙄😬🤥😌😔😪🤤😴😷🤒🤕🤢🤮🥴😵🤯🥳😎🧐😕😟🙁😮😯😲😳🥺😢😭😤😠😡🤬💀👋✌🤞🤟🤘🤙👌👍👎✊👊🤛🤜👏🙌👐🤲🙏💪🦵🦶👂👃🧠🦷👀👅👄💋❤🧡💛💚💙💜🖤🤍🤎💔❣💕💞💓💗💖💘💝🌟⭐✨🔥💥🌈☀🌙⭐🌸🌺🌻🌹🌷🌼🌿🍀🌊🔥🌟⭐✨'.split('')
 
-// Upload
-const uploadUrl = 'http://localhost:8090/api/upload/image'
+// Upload（统一 API 基址 + 鉴权头，见 utils/api.js）
+import { uploadUrl as buildUploadUrl, authHeaders } from '../utils/api'
+const uploadUrl = buildUploadUrl('image')
+const uploadHeaders = authHeaders()
 
 // --- computed ---
 const lineCount = computed(() => {
@@ -444,7 +448,13 @@ const imgUploadSuccess = (res) => {
   if (res.code === 200) {
     const md = `![图片](${res.data})`
     insertAtCursor(md)
+  } else {
+    ElMessage.error(res.message || '图片上传失败')
   }
+}
+
+const imgUploadError = () => {
+  ElMessage.error('图片上传失败，请检查登录状态与网络')
 }
 
 // --- Watch for content changes to update highlight ---

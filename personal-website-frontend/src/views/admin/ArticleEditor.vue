@@ -32,6 +32,7 @@
           <div class="cover-upload-area">
             <el-upload
               :action="uploadUrl"
+              :headers="uploadHeaders"
               :show-file-list="false"
               :on-success="handleUploadSuccess"
               :on-error="handleUploadError"
@@ -81,12 +82,14 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '../../utils/request'
 import MarkdownEditor from '../../components/MarkdownEditor.vue'
+import { uploadUrl as buildUploadUrl, authHeaders } from '../../utils/api'
 import { ArrowLeft, Plus, Refresh } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 
-const uploadUrl = 'http://localhost:8090/api/upload/image'
+const uploadUrl = buildUploadUrl('image')
+const uploadHeaders = authHeaders()
 
 const mdEditorRef = ref(null)
 const isEdit = ref(false)

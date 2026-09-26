@@ -58,7 +58,7 @@ const submitArticle = async () => {
       ElMessage.success('文章发布成功！')
       dialogVisible.value = false
       resetForm()
-      await fetchArticles('/article/list')
+      await fetchPublishedArticles()
       await fetchCategories()
       await fetchTags()
     } else {
@@ -84,7 +84,7 @@ const deleteArticle = async (id, title) => {
     const res = await request.delete(`/article/delete/${id}`)
     if (res.data.code === 200) {
       ElMessage.success('文章已删除')
-      await fetchArticles('/article/list')
+      await fetchPublishedArticles()
       await fetchCategories()
       await fetchTags()
     } else {
@@ -95,19 +95,8 @@ const deleteArticle = async (id, title) => {
   }
 }
 
-// 获取文章列表
-const fetchArticles = async (url) => {
-  try {
-    const res = await request.get(url)
-    if (res.data.code === 200) {
-      articleList.value = res.data.data
-    }
-  } catch (error) {
-    console.error("获取文章列表失败:", error)
-  }
-}
-
 // 获取已发布的文章列表（供前端展示）
+// 注意：不要使用无过滤的 /article/list，它包含草稿，会泄露未发布内容
 const fetchPublishedArticles = async () => {
   try {
     // 使用分页接口，只获取已发布的文章（设置大 pageSize 获取全部）

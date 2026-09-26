@@ -2,7 +2,6 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
-import { recordArticleRead } from '../utils/statistic'
 import { Calendar, View, ArrowLeft } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -70,8 +69,7 @@ const handleAnchorClick = (anchor) => {
 }
 
 onMounted(() => {
-  fetchArticle()
-  recordArticleRead() // 记录文章阅读
+  fetchArticle() // 阅读量与文章阅读统计由服务端在 /article/get 中原子累加
   window.scrollTo(0, 0) // 切换页面时自动回到顶部
 })
 </script>

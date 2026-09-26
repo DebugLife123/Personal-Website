@@ -62,7 +62,7 @@ const submitMessage = async () => {
   }
   submitting.value = true
   try {
-    const res = await request.post('/message/add', { ...form.value, isAdmin: isAdmin.value })
+    const res = await request.post('/message/add', { ...form.value })
     if (res.data.code === 200) {
       ElMessage.success('留言成功！')
       form.value.content = ''
@@ -138,7 +138,7 @@ const submitReply = async () => {
   }
   replySubmitting.value = true
   try {
-    const res = await request.post('/message/add', { ...replyForm.value, isAdmin: isAdmin.value })
+    const res = await request.post('/message/add', { ...replyForm.value })
     if (res.data.code === 200) {
       ElMessage.success('回复成功！')
       showReplyForm.value = false

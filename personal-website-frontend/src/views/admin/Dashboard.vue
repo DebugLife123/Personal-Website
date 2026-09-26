@@ -21,17 +21,7 @@
         <div class="chart-card">
           <div class="chart-header">
             <span class="chart-title">浏览量趋势</span>
-            <el-date-picker
-              v-model="dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              size="small"
-              class="date-picker"
-              value-format="YYYY-MM-DD"
-              @change="updateCharts"
-            />
+            <span class="chart-hint">近 7 天</span>
           </div>
           <div ref="pvChartRef" class="chart-container"></div>
         </div>
@@ -59,9 +49,9 @@
       <el-col :span="12">
         <div class="chart-card">
           <div class="chart-header">
-            <span class="chart-title">访客省份分布</span>
+            <span class="chart-title">文章分类分布</span>
           </div>
-          <div ref="provinceRef" class="chart-container"></div>
+          <div ref="categoryRef" class="chart-container"></div>
         </div>
       </el-col>
     </el-row>
@@ -82,13 +72,11 @@ import { View, User, TrendCharts, Plus, Document, ChatLineRound } from '@element
 const pvChartRef = ref(null)
 const uvChartRef = ref(null)
 const topArticlesRef = ref(null)
-const provinceRef = ref(null)
+const categoryRef = ref(null)
 let pvChart = null
 let uvChart = null
 let topChart = null
-let provinceChart = null
-
-const dateRange = ref([])
+let categoryChart = null
 
 const statCards = ref([
   { icon: View, value: '-', label: '总浏览量', color: '#6c5fa0', bg: '#f0ecf6' },
@@ -107,18 +95,8 @@ const uvData = ref([0,0,0,0,0,0,0])
 // TOP10 文章（真实接口填充）
 const topArticles = ref([])
 
-// 省份数据
-const provinceData = [
-  { name: '广东', value: 680 },
-  { name: '江苏', value: 520 },
-  { name: '浙江', value: 480 },
-  { name: '北京', value: 420 },
-  { name: '上海', value: 380 },
-  { name: '四川', value: 290 },
-  { name: '湖北', value: 240 },
-  { name: '湖南', value: 210 },
-  { name: '其他', value: 520 },
-]
+// 文章分类分布（真实数据，来自文章列表聚合）
+const categoryData = ref([])
 
 // 运行天数
 const startDate = new Date('2025-05-01')
@@ -173,7 +151,7 @@ const initUvChart = () => {
     grid: { left: '3%', right: '4%', bottom: '8%', top: '8%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: days7,
+      data: days7.value,
       axisLine: { lineStyle: { color: lightGray } },
       axisLabel: { color: '#999', fontSize: 11 },
       axisTick: { show: false },
@@ -241,9 +219,9 @@ const initTopArticles = () => {
   })
 }
 
-const initProvince = () => {
-  if (!provinceRef.value) return
-  provinceChart = echarts.init(provinceRef.value)
+const initCategoryChart = () => {
+  if (!categoryRef.value) return
+  categoryChart = echarts.init(categoryRef.value)
   provinceChart.setOption({
     tooltip: {
       trigger: 'item',
@@ -268,7 +246,7 @@ const initProvince = () => {
         borderWidth: 2,
       },
       color: ['#6c5fa0', '#7a8aaa', '#5a8d7a', '#c08a5c', '#8a6a9a', '#6a8aaa', '#9a7a6a', '#b8968a', '#d0d0d8'],
-      data: provinceData.map(d => ({ name: d.name, value: d.value })),
+      data: categoryData.value.map(d => ({ name: d.name, value: d.value })),
     }],
     legend: {
       orient: 'vertical',
@@ -285,7 +263,7 @@ const resizeAll = () => {
   pvChart?.resize()
   uvChart?.resize()
   topChart?.resize()
-  provinceChart?.resize()
+  categoryChart?.resize()
 }
 
 
@@ -300,23 +278,30 @@ const loadStats = async () => {
       request.get('/visitor/summary').then(r => r.data.code === 200 ? r.data.data : null).catch(() => null),
     ])
 
-    // 折线：最近 7 天
+    // 折线：最近 7 天（PV=访问次数，UV=去重 IP 数，使用本地时区日期）
     const days = []
     const pv = []
     const uv = []
     const visByDay = {}
+    const uvByDay = {}
     if (visSum && Array.isArray(visSum.byDay)) {
       for (const d of visSum.byDay) {
         const key = String(d.visit_date || d.VISIT_DATE || d.visitDate).slice(0, 10)
         visByDay[key] = Number(d.cnt || d.CNT || 0)
       }
     }
+    if (visSum && Array.isArray(visSum.byDayUv)) {
+      for (const d of visSum.byDayUv) {
+        const key = String(d.visit_date || d.VISIT_DATE || d.visitDate).slice(0, 10)
+        uvByDay[key] = Number(d.uv || d.UV || 0)
+      }
+    }
     for (let i = 6; i >= 0; i--) {
       const dt = new Date(); dt.setDate(dt.getDate() - i)
-      const iso = dt.toISOString().slice(0, 10)
+      const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
       days.push(iso.slice(5).replace('-', '/'))
       pv.push(visByDay[iso] ?? 0)
-      uv.push(visByDay[iso] ?? 0)
+      uv.push(uvByDay[iso] ?? 0)
     }
     days7.value = days
     pvData.value = pv
@@ -340,11 +325,17 @@ const loadStats = async () => {
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 10)
       .map(a => ({ name: a.title, value: a.views || 0 }))
-  } catch (e) { console.error(e) }
-}
 
-const updateCharts = () => {
-  // In real app would fetch from API with date range
+    // 文章分类分布（真实聚合）
+    const catMap = {}
+    for (const a of artsArr) {
+      const c = (a.category || '').trim() || '未分类'
+      catMap[c] = (catMap[c] || 0) + 1
+    }
+    categoryData.value = Object.entries(catMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+  } catch (e) { console.error(e) }
 }
 
 onMounted(async () => {
@@ -353,7 +344,7 @@ onMounted(async () => {
     initPvChart()
     initUvChart()
     initTopArticles()
-    initProvince()
+    initCategoryChart()
   })
   window.addEventListener('resize', resizeAll)
 })
@@ -363,7 +354,7 @@ onUnmounted(() => {
   pvChart?.dispose()
   uvChart?.dispose()
   topChart?.dispose()
-  provinceChart?.dispose()
+  categoryChart?.dispose()
 })
 </script>
 
@@ -447,8 +438,9 @@ onUnmounted(() => {
   color: #444;
 }
 
-.date-picker {
-  width: 210px;
+.chart-hint {
+  font-size: 0.75rem;
+  color: #bbb;
 }
 
 .chart-container {
@@ -484,9 +476,6 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 8px;
     align-items: flex-start;
-  }
-  .date-picker {
-    width: 100%;
   }
 }
 </style>

@@ -66,8 +66,9 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
-  checkAuth()
+router.beforeEach(async (to, from, next) => {
+  // 校验登录态（管理员身份会回源验证 Token）
+  await checkAuth()
 
   // 登录页放行
   if (to.path === '/login') {

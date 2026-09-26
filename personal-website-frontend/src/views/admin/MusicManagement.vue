@@ -136,6 +136,7 @@
           <div class="upload-area">
             <el-upload
               :action="uploadImageUrl"
+              :headers="uploadHeaders"
               :show-file-list="false"
               :on-success="handleCoverSuccess"
               :on-error="handleCoverError"
@@ -159,6 +160,7 @@
           <div class="upload-area">
             <el-upload
               :action="uploadAudioUrl"
+              :headers="uploadHeaders"
               :show-file-list="false"
               :on-success="handleAudioSuccess"
               :on-error="handleAudioError"
@@ -232,13 +234,15 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../../utils/request'
+import { uploadUrl as buildUploadUrl, authHeaders } from '../../utils/api'
 import {
   Search, Plus, VideoPlay, Edit, Delete,
   Headset, Refresh, Upload
 } from '@element-plus/icons-vue'
 
-const uploadImageUrl = 'http://localhost:8090/api/upload/image'
-const uploadAudioUrl = 'http://localhost:8090/api/upload/audio'
+const uploadImageUrl = buildUploadUrl('image')
+const uploadAudioUrl = buildUploadUrl('audio')
+const uploadHeaders = authHeaders()
 
 const loading = ref(false)
 const submitting = ref(false)

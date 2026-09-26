@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { API_BASE } from './api'
 
 const request = axios.create({
-    baseURL: 'http://localhost:8090/api', // 后端接口基础路径
+    baseURL: API_BASE, // 后端接口基础路径（默认同源 /api，由开发代理转发；可用 VITE_API_BASE 覆盖）
     timeout: 5000
 })
 
