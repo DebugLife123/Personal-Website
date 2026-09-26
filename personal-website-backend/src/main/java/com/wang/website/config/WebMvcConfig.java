@@ -35,6 +35,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     @Override
+    public void addViewControllers(org.springframework.web.servlet.config.annotation.ViewControllerRegistry registry) {
+        // 根路径欢迎页：/ 转发到 /index.html，由下面的 SPA 资源处理器提供
+        File indexFile = new File(System.getProperty("user.dir") + File.separator + "web", "index.html");
+        if (indexFile.exists()) {
+            registry.addViewController("/").setViewName("forward:/index.html");
+        }
+    }
+
+    @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         String workDir = System.getProperty("user.dir") + File.separator;
         String uploadPath = workDir + "uploads" + File.separator;
@@ -52,8 +61,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
                     .addResolver(new PathResourceResolver() {
                         @Override
                         protected Resource getResource(String resourcePath, Resource location) throws IOException {
+                            // 根路径直接回首页（否则 createRelative("") 命中目录导致 404）
+                            if (resourcePath.isEmpty() || resourcePath.equals("/")) {
+                                return new FileSystemResource(indexFile);
+                            }
                             Resource requested = location.createRelative(resourcePath);
-                            if (requested.exists() && requested.isReadable()) {
+                            if (requested.exists() && requested.isReadable() && requested.isFile()) {
                                 return requested;
                             }
                             if (resourcePath.startsWith("api/") || resourcePath.startsWith("uploads/")) {

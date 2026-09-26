@@ -10,7 +10,9 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/personal_website?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
+    # allowPublicKeyRetrieval：MySQL8 caching_sha2_password 在非 SSL 连接下需要，
+    # 生产库仅监听 localhost，风险可接受
+    url: jdbc:mysql://localhost:3306/personal_website?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
   servlet:
