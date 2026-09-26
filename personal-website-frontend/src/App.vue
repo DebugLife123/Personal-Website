@@ -410,82 +410,87 @@ html.dark .article-detail-container .toc-item:hover {
 }
 
 /* ============================================================
-   🖋 纸墨档案 / 留言册 · 暗色（同一套纸墨，换成夜色）
-   两个页面内部已改为令牌化，暗色只需替换令牌
+   🌙 项目 / 留言页 · 暗色（与全站暗色系一致，令牌整体替换）
    ============================================================ */
 html.dark .projects-page,
 html.dark .message-page {
-  --paper: #131110;
-  --paper-raised: #1c1917;
-  --ink: #ece6da;
-  --ink-2: #a49b8d;
-  --ink-3: #7c7266;
-  --line: #2d2823;
-  --line-strong: #443d34;
-  --vermilion: #d6552f;
-  --vermilion-deep: #b23e22;
+  --page: #09090c;
+  --card: #131316;
+  --card-soft: #1a1a20;
+  --ink: #ece8e4;
+  --ink-2: #c8c4cc;
+  --ink-3: #9896a2;
+  --line: #1e1e26;
+  --line-2: #24242c;
+  --accent: #5b8def;
+  --accent-deep: #7ba3f5;
+  --accent-soft: #1a2233;
+  --cta: #3d6ee0;
+  --cta-hover: #2f59c2;
+  --shadow-1: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 12px 40px rgba(0, 0, 0, 0.55);
 
-  background:
-    radial-gradient(1200px 400px at 50% -120px, rgba(255, 245, 230, 0.035), transparent 70%),
-    var(--paper) !important;
+  background: var(--page) !important;
   color: var(--ink);
 }
-/* 颗粒反相，夜色里才看得见 */
-html.dark .projects-page::before,
-html.dark .message-page::before {
-  filter: invert(1);
-  opacity: 0.35;
-}
+
+/* ---- 状态/标签的暗色柔化 ---- */
+html.dark .status-badge { background: #1e2126; color: var(--ink-2); }
+html.dark .status-badge[data-status='已完成'],
+html.dark .hero-badge[data-status='已完成'] { background: rgba(46, 160, 110, 0.16); color: #4ecf8d; }
+html.dark .status-badge[data-status='开发中'],
+html.dark .hero-badge[data-status='开发中'] { background: rgba(214, 148, 62, 0.16); color: #e8b45f; }
+html.dark .status-badge[data-status='学习中'],
+html.dark .hero-badge[data-status='学习中'] { background: rgba(91, 141, 239, 0.16); color: #7ba3f5; }
+html.dark .hero-badge { background: #24242c; color: var(--ink-2); }
+html.dark .hero-badge-cat { background: #24242c; }
 
 /* ---- Projects ---- */
-html.dark .project-card:hover {
-  box-shadow: 0 18px 36px -18px rgba(0, 0, 0, 0.75);
-}
+html.dark .card-img { background: #101014; }
 html.dark .card-img-fallback {
-  background:
-    repeating-linear-gradient(-45deg, transparent 0 12px, rgba(236, 230, 218, 0.05) 12px 13px),
-    linear-gradient(160deg, #201d19 0%, #171512 100%);
+  background: linear-gradient(135deg, #1b1e27 0%, #14161d 100%);
 }
-html.dark .fallback-icon { color: rgba(236, 230, 218, 0.2); }
+html.dark .fallback-icon { color: #363d4d; }
+html.dark .card-serial {
+  background: rgba(19, 19, 22, 0.92);
+  color: var(--ink-2);
+}
+html.dark .tech-chip { background: #1a1d26; color: var(--ink-2); }
+html.dark .project-card:hover .tech-chip {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+html.dark .action-icon-btn {
+  background: rgba(19, 19, 22, 0.92) !important;
+  color: var(--ink-3) !important;
+}
+html.dark .action-icon-btn:hover { color: var(--accent) !important; }
+html.dark .empty-mark { color: #3a3f4c; }
 html.dark .detail-hero-fallback {
-  background:
-    repeating-linear-gradient(-45deg, transparent 0 14px, rgba(236, 230, 218, 0.05) 14px 15px),
-    linear-gradient(160deg, #201d19 0%, #171512 100%);
+  background: linear-gradient(135deg, #1b1e27 0%, #14161d 100%);
 }
-html.dark .detail-hero-icon { color: rgba(236, 230, 218, 0.22); }
-html.dark .detail-desc-content {
-  background: rgba(236, 230, 218, 0.045);
+html.dark .detail-hero-icon { color: #363d4d; }
+html.dark .detail-tech-tag { background: #1a1d26; color: var(--ink-2); }
+html.dark .detail-tech-tag:hover {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
 }
-html.dark .detail-dialog .el-dialog {
-  background: var(--paper-raised);
-  border-color: var(--line-strong);
-}
-html.dark .detail-link-btn:hover { background: var(--paper-raised); }
 
 /* ---- MessageBoard ---- */
-html.dark .stamp-img {
-  mix-blend-mode: normal;
-  opacity: 0.9;
+html.dark .hero-banner {
+  background:
+    radial-gradient(700px 300px at 16% 18%, rgba(91, 141, 239, 0.18), transparent 60%),
+    radial-gradient(520px 260px at 86% 78%, rgba(91, 141, 239, 0.1), transparent 60%),
+    linear-gradient(135deg, #151a26 0%, #0e1118 60%, #131826 100%);
 }
-html.dark .entry-card:hover {
-  box-shadow: 0 14px 32px -18px rgba(0, 0, 0, 0.8);
-}
-html.dark .msg-ledger-item.is-pinned .entry-card {
-  background: linear-gradient(105deg, rgba(214, 85, 47, 0.1), var(--paper-raised) 38%);
-}
-html.dark .entry-avatar {
-  background: #ece6da;
-  color: #1a1815;
-  border-color: var(--line-strong);
-}
-html.dark .entry-avatar.has-img { background: none; }
-html.dark .act:hover { background: rgba(236, 230, 218, 0.07); }
-html.dark .reply-item::before { background: var(--paper-raised); }
-html.dark .reply-form { background: rgba(236, 230, 218, 0.035); }
-html.dark .empty-state { background: rgba(28, 25, 23, 0.5); }
+html.dark .msg-index { color: #454a56; }
+html.dark .entry-avatar { background: #2a2f3c; }
+html.dark .act:hover { background: #1e1e26; }
+html.dark .reply-item:hover { background: #1c1e26; border-color: var(--line-2); }
+html.dark .profile-avatar { border-color: #1a1a20; }
 html.dark .skeleton-avatar,
 html.dark .skeleton-line {
-  background: linear-gradient(90deg, #221f1b 25%, #2b2723 50%, #221f1b 75%) !important;
+  background: linear-gradient(90deg, #1c1d24 25%, #23242c 50%, #1c1d24 75%) !important;
   background-size: 200% 100%;
 }
 

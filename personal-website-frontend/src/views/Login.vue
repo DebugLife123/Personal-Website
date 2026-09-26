@@ -266,11 +266,11 @@ const enterAsGuest = () => { guestLogin(); router.push('/') }
   justify-content: center;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(60, 55, 90, 0.5) 0%, transparent 60%),
-    radial-gradient(ellipse at 50% 100%, rgba(40, 45, 70, 0.35) 0%, transparent 50%),
-    radial-gradient(ellipse at 30% 40%, rgba(50, 45, 80, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 60%, rgba(45, 50, 75, 0.2) 0%, transparent 50%),
-    linear-gradient(180deg, #12101c 0%, #161522 30%, #141320 60%, #11101a 100%);
+    radial-gradient(ellipse at 50% 0%, rgba(38, 46, 78, 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(20, 26, 40, 0.6) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 40%, rgba(34, 44, 72, 0.28) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(30, 38, 62, 0.22) 0%, transparent 50%),
+    linear-gradient(180deg, #0e1424 0%, #101828 32%, #10182b 60%, #0c1220 100%);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue",
     "PingFang SC", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -295,7 +295,7 @@ const enterAsGuest = () => { guestLogin(); router.push('/') }
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(30, 28, 50, 0.45);
+  background: rgba(22, 28, 46, 0.45);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   border: 1px solid rgba(255, 255, 255, 0.08);
