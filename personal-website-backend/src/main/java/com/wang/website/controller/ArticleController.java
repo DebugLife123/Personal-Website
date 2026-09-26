@@ -26,6 +26,21 @@ public class ArticleController {
     @Autowired
     private com.wang.website.mapper.OperationLogMapper operationLogMapper;
 
+    @Autowired
+    private com.wang.website.mapper.StatisticMapper statisticMapper;
+
+    /** 是否管理员请求（由 AuthInterceptor 解析 Token 后写入） */
+    private boolean isAdmin(HttpServletRequest request) {
+        return request != null && request.getAttribute("adminUser") != null;
+    }
+
+    /** 非管理员强制只看已发布文章 */
+    private void publishedOnly(QueryWrapper<Article> wrapper, HttpServletRequest request) {
+        if (!isAdmin(request)) {
+            wrapper.eq("status", "已发布");
+        }
+    }
+
     // 获取文章列表（不分页）
     @GetMapping("/list")
     public Result<List<Article>> getArticleList() {
@@ -38,7 +53,7 @@ public class ArticleController {
         }
     }
 
-    // 分页查询文章（支持搜索/分类/日期过滤）
+    // 分页查询文章（支持搜索/分类/日期过滤；非管理员只能看已发布）
     @GetMapping("/page")
     public Result<IPage<Article>> getArticlePage(
             @RequestParam(defaultValue = "1") Integer page,
@@ -47,10 +62,12 @@ public class ArticleController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate) {
+            @RequestParam(required = false) String endDate,
+            HttpServletRequest request) {
         try {
             QueryWrapper<Article> wrapper = new QueryWrapper<>();
             wrapper.orderByDesc("create_time");
+            publishedOnly(wrapper, request);
 
             if (keyword != null && !keyword.trim().isEmpty()) {
                 wrapper.and(w -> w.like("title", keyword)
@@ -80,9 +97,10 @@ public class ArticleController {
 
     // 根据分类获取文章列表
     @GetMapping("/listByCategory")
-    public Result<List<Article>> getArticleListByCategory(@RequestParam String category) {
+    public Result<List<Article>> getArticleListByCategory(@RequestParam String category, HttpServletRequest request) {
         try {
             QueryWrapper<Article> wrapper = new QueryWrapper<Article>().eq("category", category);
+            publishedOnly(wrapper, request);
             List<Article> list = articleMapper.selectList(wrapper);
             return Result.success(list);
         } catch (Exception e) {
@@ -93,9 +111,10 @@ public class ArticleController {
 
     // 根据标签获取文章列表
     @GetMapping("/listByTag")
-    public Result<List<Article>> getArticleListByTag(@RequestParam String tag) {
+    public Result<List<Article>> getArticleListByTag(@RequestParam String tag, HttpServletRequest request) {
         try {
             QueryWrapper<Article> wrapper = new QueryWrapper<Article>().like("tags", tag);
+            publishedOnly(wrapper, request);
             List<Article> list = articleMapper.selectList(wrapper);
             return Result.success(list);
         } catch (Exception e) {
@@ -104,11 +123,13 @@ public class ArticleController {
         }
     }
 
-    // 获取所有分类
+    // 获取所有分类（非管理员只统计已发布文章）
     @GetMapping("/categories")
-    public Result<List<String>> getCategories() {
+    public Result<List<String>> getCategories(HttpServletRequest request) {
         try {
-            List<Article> articles = articleMapper.selectList(null);
+            QueryWrapper<Article> wrapper = new QueryWrapper<>();
+            publishedOnly(wrapper, request);
+            List<Article> articles = articleMapper.selectList(wrapper);
             List<String> categories = articles.stream()
                     .map(Article::getCategory)
                     .distinct()
@@ -121,11 +142,13 @@ public class ArticleController {
         }
     }
 
-    // 获取所有标签
+    // 获取所有标签（非管理员只统计已发布文章）
     @GetMapping("/tags")
-    public Result<List<String>> getTags() {
+    public Result<List<String>> getTags(HttpServletRequest request) {
         try {
-            List<Article> articles = articleMapper.selectList(null);
+            QueryWrapper<Article> wrapper = new QueryWrapper<>();
+            publishedOnly(wrapper, request);
+            List<Article> articles = articleMapper.selectList(wrapper);
             List<String> tags = articles.stream()
                     .map(Article::getTags)
                     .filter(t -> t != null && !t.isEmpty())
@@ -142,7 +165,7 @@ public class ArticleController {
 
     // 搜索文章
     @GetMapping("/search")
-    public Result<List<Article>> searchArticles(@RequestParam String keyword) {
+    public Result<List<Article>> searchArticles(@RequestParam String keyword, HttpServletRequest request) {
         try {
             QueryWrapper<Article> wrapper = new QueryWrapper<Article>()
                     .like("title", keyword)
@@ -152,6 +175,7 @@ public class ArticleController {
                     .like("content", keyword)
                     .or()
                     .like("tags", keyword);
+            publishedOnly(wrapper, request);
             List<Article> list = articleMapper.selectList(wrapper);
             return Result.success(list);
         } catch (Exception e) {
@@ -204,17 +228,19 @@ public class ArticleController {
         }
     }
 
-    // 根据 ID 获取文章详情（前台用，阅读量+1）
+    // 根据 ID 获取文章详情（前台用，阅读量原子 +1，并同步累加站点文章阅读统计）
     @GetMapping("/get")
-    public Result<Article> getArticleById(@RequestParam Integer id) {
+    public Result<Article> getArticleById(@RequestParam Integer id, HttpServletRequest request) {
         try {
             Article article = articleMapper.selectById(id);
-            if (article != null) {
-                article.setViews(article.getViews() + 1);
-                articleMapper.updateById(article);
-                return Result.success(article);
+            // 草稿对非管理员不可见
+            if (article == null || ("草稿".equals(article.getStatus()) && !isAdmin(request))) {
+                return Result.error("文章不存在");
             }
-            return Result.error("文章不存在");
+            articleMapper.incrViews(id);
+            statisticMapper.recordArticleRead();
+            article.setViews((article.getViews() == null ? 0 : article.getViews()) + 1);
+            return Result.success(article);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("获取文章详情失败");

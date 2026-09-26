@@ -68,12 +68,18 @@ public class VisitorController {
             LocalDate today = LocalDate.now();
             m.put("total", visitorMapper.selectCount(null));
             m.put("today", visitorMapper.selectCount(new QueryWrapper<Visitor>().eq("visit_date", today)));
-            // 最近7天按日统计
+            // 最近7天按日统计（PV：访问次数）
             List<Map<String, Object>> byDay = visitorMapper.selectMaps(new QueryWrapper<Visitor>()
                     .select("visit_date, COUNT(*) as cnt")
                     .ge("visit_date", today.minusDays(6))
                     .groupBy("visit_date").orderByAsc("visit_date"));
             m.put("byDay", byDay);
+            // 最近7天按日统计（UV：去重 IP 数）
+            List<Map<String, Object>> byDayUv = visitorMapper.selectMaps(new QueryWrapper<Visitor>()
+                    .select("visit_date, COUNT(DISTINCT ip) as uv")
+                    .ge("visit_date", today.minusDays(6))
+                    .groupBy("visit_date").orderByAsc("visit_date"));
+            m.put("byDayUv", byDayUv);
             return Result.success(m);
         } catch (Exception e) {
             e.printStackTrace();
