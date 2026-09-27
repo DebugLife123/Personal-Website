@@ -14,3 +14,12 @@ export const authHeaders = () => {
     return {}
   }
 }
+
+/**
+ * 规范化媒体地址：历史数据里可能有写死的本机地址（如 http://localhost:8080/uploads/...），
+ * 这类地址在别的机器上必然访问不到，统一剥掉协议+主机，退回同源相对路径。
+ */
+export const mediaUrl = (url) => {
+  if (!url) return ''
+  return String(url).replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, '')
+}
