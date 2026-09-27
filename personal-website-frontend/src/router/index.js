@@ -51,6 +51,7 @@ const routes = [
       { path: 'categories', component: () => import('../views/admin/CategoryManagement.vue') },
       { path: 'comments', component: () => import('../views/admin/CommentManagement.vue') },
       { path: 'messages', component: () => import('../views/admin/MessageManagement.vue') },
+      { path: 'users', component: () => import('../views/admin/WebUserManagement.vue') },
       { path: 'music', component: () => import('../views/admin/MusicManagement.vue') },
       { path: 'visitors', component: () => import('../views/admin/VisitorManagement.vue') },
       { path: 'logs', component: () => import('../views/admin/OperationLogs.vue') },

@@ -21,6 +21,56 @@ CREATE TABLE IF NOT EXISTS admin_user (
 INSERT IGNORE INTO admin_user (username, password)
 VALUES ('admin', '$2a$10$.KR4H4sZKkRNRQAMOPe22eMe0pRXkHzWQUg3Cfx4K2be8wl5/l0VK');
 
+-- 0.1 站点注册用户表（与管理员账号独立）
+CREATE TABLE IF NOT EXISTS website_user (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL COMMENT '登录用户名',
+    password VARCHAR(100) NOT NULL COMMENT 'BCrypt 加密后的密码',
+    nickname VARCHAR(50) DEFAULT '' COMMENT '昵称',
+    email VARCHAR(100) DEFAULT '' COMMENT '邮箱（可选）',
+    avatar VARCHAR(500) DEFAULT '' COMMENT '头像',
+    status VARCHAR(20) DEFAULT 'normal' COMMENT 'normal/banned',
+    last_login_time DATETIME COMMENT '最近登录时间',
+    last_login_ip VARCHAR(50) DEFAULT '' COMMENT '最近登录IP',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
+    UNIQUE KEY uk_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站点注册用户表';
+
+-- 0.2 登录令牌表：管理员与注册用户共用，DB 持久化（重启不掉线）
+CREATE TABLE IF NOT EXISTS auth_token (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(64) NOT NULL COMMENT '令牌',
+    principal_type VARCHAR(10) NOT NULL COMMENT 'admin/user',
+    principal_id INT NOT NULL COMMENT '主体ID（admin_user.id 或 website_user.id）',
+    principal_name VARCHAR(50) DEFAULT '' COMMENT '主体用户名',
+    expire_at DATETIME NOT NULL COMMENT '过期时间',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_token (token),
+    INDEX idx_principal (principal_type, principal_id),
+    INDEX idx_expire (expire_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='登录令牌表';
+
+-- 0.3 存量库幂等迁移：为旧版表补充新列（用 information_schema 判断避免重复）
+SET @col := (SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'website_user' AND COLUMN_NAME = 'nickname');
+SET @sql := IF(@col = 0,
+    'ALTER TABLE website_user
+        ADD COLUMN nickname VARCHAR(50) DEFAULT '''' COMMENT ''昵称'',
+        ADD COLUMN email VARCHAR(100) DEFAULT '''' COMMENT ''邮箱（可选）'',
+        ADD COLUMN avatar VARCHAR(500) DEFAULT '''' COMMENT ''头像'',
+        ADD COLUMN status VARCHAR(20) DEFAULT ''normal'' COMMENT ''normal/banned'',
+        ADD COLUMN last_login_time DATETIME COMMENT ''最近登录时间'',
+        ADD COLUMN last_login_ip VARCHAR(50) DEFAULT '''' COMMENT ''最近登录IP''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @col := (SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'message' AND COLUMN_NAME = 'user_id');
+SET @sql := IF(@col = 0,
+    'ALTER TABLE message ADD COLUMN user_id INT DEFAULT NULL COMMENT ''留言所属注册用户''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- 1. 文章表
 CREATE TABLE IF NOT EXISTS article (
     id INT AUTO_INCREMENT PRIMARY KEY,

@@ -26,12 +26,15 @@ public class Message {
     private Integer likes;
     private Boolean isPinned;
     private String status; // pending/approved/rejected/deleted
+    private Integer userId; // 留言所属注册用户（旧匿名留言为 NULL）
 
     @TableField(exist = false)
     private List<Message> replies;
 
     @TableField(exist = false)
     private Boolean adminPost; // 后端返回：是否管理员发的留言
+    @TableField(exist = false)
+    private Boolean mine; // 后端返回：是否当前登录用户自己的留言
     @TableField(exist = false)
     private Integer replyCount; // 回复数
 }

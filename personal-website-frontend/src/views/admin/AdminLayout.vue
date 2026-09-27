@@ -35,6 +35,10 @@
           <el-icon><ChatLineRound /></el-icon>
           <span>留言管理</span>
         </el-menu-item>
+        <el-menu-item index="/admin/users">
+          <el-icon><Avatar /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
         <el-menu-item index="/admin/music">
           <el-icon><Headset /></el-icon>
           <span>音乐管理</span>
@@ -96,7 +100,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAdminStore } from '../../stores/admin'
 import {
   Odometer, Document, CollectionTag, ChatDotSquare, ChatLineRound,
-  Headset, User, Tickets, UserFilled, Setting,
+  Headset, User, Tickets, UserFilled, Setting, Avatar,
   Fold, Expand, HomeFilled
 } from '@element-plus/icons-vue'
 import { logout, isAdmin, currentUser } from '../../utils/auth'
@@ -111,6 +115,7 @@ const pageTitles = {
   '/admin/categories': '分类/标签管理',
   '/admin/comments': '评论管理',
   '/admin/messages': '留言管理',
+  '/admin/users': '用户管理',
   '/admin/music': '音乐管理',
   '/admin/visitors': '访客管理',
   '/admin/logs': '操作日志',

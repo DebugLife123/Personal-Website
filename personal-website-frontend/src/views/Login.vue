@@ -7,71 +7,127 @@
       <div class="card-brand">
         <span class="brand-icon">Y</span>
       </div>
-      <h1 class="card-title">欢迎回来</h1>
+      <h1 class="card-title">{{ pageTitle }}</h1>
       <p class="card-sub">yu翔 的个人网站</p>
 
-      <!-- 身份选择：管理员 / 用户 -->
-      <div class="identity-row">
-        <div
-          class="identity-item"
-          :class="{ active: mode === 'admin' }"
-          @click="switchMode('admin')"
-        >
-          <div class="identity-avatar">
-            <img src="https://img0.baidu.com/it/u=3289832022,2938968940&fm=253&app=138&f=JPEG?w=500&h=500" />
-          </div>
-          <span class="identity-label">管理员</span>
-        </div>
-        <div
-          class="identity-item"
-          :class="{ active: mode === 'user' }"
-          @click="switchMode('user')"
-        >
-          <div class="identity-avatar guest-avatar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z" />
-            </svg>
-          </div>
-          <span class="identity-label">用户</span>
-        </div>
+      <!-- 顶端切换：登录 / 注册 -->
+      <div class="mode-tabs">
+        <div class="mode-tab" :class="{ active: page === 'login' }" @click="switchPage('login')">登录</div>
+        <div class="mode-tab" :class="{ active: page === 'register' }" @click="switchPage('register')">注册</div>
+        <span class="tab-ink" :style="{ transform: page === 'register' ? 'translateX(100%)' : 'translateX(0)' }"></span>
       </div>
 
-      <!-- 登录表单：管理员 / 用户 选中时显示 -->
-      <transition name="form-fade">
-        <div class="form-area" v-if="mode === 'admin' || mode === 'user'">
-          <input
-            ref="usernameRef"
-            v-model="form.username"
-            class="field-input"
-            type="text"
-            placeholder="用户名"
-            autocomplete="off"
-            @keyup.enter="focusPassword"
-          />
-          <input
-            ref="passwordRef"
-            v-model="form.password"
-            class="field-input"
-            type="password"
-            placeholder="密码"
-            autocomplete="off"
-            @keyup.enter="handleLogin"
-          />
-          <p v-if="errorMsg" class="error-text">{{ errorMsg }}</p>
-          <button
-            class="submit-btn"
-            :class="{ loading: submitting }"
-            :disabled="submitting"
-            @click="handleLogin"
-          >
-            <span v-if="submitting" class="btn-spinner"></span>
-            <span v-else>登录</span>
-          </button>
+      <!-- ===================== 登录页 ===================== -->
+      <div class="form-area" v-if="page === 'login'">
+        <!-- 身份选择：用户 / 管理员 -->
+        <div class="identity-row">
+          <div class="identity-item" :class="{ active: loginAs === 'user' }" @click="switchLoginAs('user')">
+            <div class="identity-avatar guest-avatar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z" />
+              </svg>
+            </div>
+            <span class="identity-label">用户</span>
+          </div>
+          <div class="identity-item" :class="{ active: loginAs === 'admin' }" @click="switchLoginAs('admin')">
+            <div class="identity-avatar">
+              <img src="https://img0.baidu.com/it/u=3289832022,2938968940&fm=253&app=138&f=JPEG?w=500&h=500" />
+            </div>
+            <span class="identity-label">管理员</span>
+          </div>
         </div>
-      </transition>
 
-      <!-- 游客登录：始终在底部 -->
-      <div class="guest-section">
+        <input
+          ref="usernameRef"
+          v-model="form.username"
+          class="field-input"
+          type="text"
+          placeholder="用户名"
+          autocomplete="off"
+          @keyup.enter="focusPassword"
+        />
+        <input
+          ref="passwordRef"
+          v-model="form.password"
+          class="field-input"
+          type="password"
+          placeholder="密码"
+          autocomplete="off"
+          @keyup.enter="handleLogin"
+        />
+        <p v-if="errorMsg" class="error-text">{{ errorMsg }}</p>
+        <button class="submit-btn" :class="{ loading: submitting }" :disabled="submitting" @click="handleLogin">
+          <span v-if="submitting" class="btn-spinner"></span>
+          <span v-else>登录</span>
+        </button>
+      </div>
+
+      <!-- ===================== 注册页 ===================== -->
+      <div class="form-area" v-else>
+        <input
+          v-model="reg.username"
+          class="field-input"
+          type="text"
+          placeholder="用户名（3-20 位字母、数字或下划线）"
+          autocomplete="off"
+          maxlength="20"
+        />
+        <input
+          v-model="reg.nickname"
+          class="field-input"
+          type="text"
+          placeholder="昵称（可选，默认与用户名相同）"
+          autocomplete="off"
+          maxlength="20"
+        />
+        <input
+          v-model="reg.password"
+          class="field-input"
+          type="password"
+          placeholder="密码（至少 6 位）"
+          autocomplete="new-password"
+          maxlength="64"
+        />
+        <input
+          v-model="reg.password2"
+          class="field-input"
+          type="password"
+          placeholder="确认密码"
+          autocomplete="new-password"
+          maxlength="64"
+          @keyup.enter="handleRegister"
+        />
+        <input
+          v-model="reg.email"
+          class="field-input"
+          type="email"
+          placeholder="邮箱（可选）"
+          autocomplete="off"
+        />
+        <!-- 算术验证码 -->
+        <div class="captcha-row">
+          <div class="captcha-question" @click="refreshCaptcha" title="点击换一题">
+            <span>{{ captchaQuestion || '点击获取题目' }}</span>
+          </div>
+          <input
+            v-model="reg.captchaAnswer"
+            class="field-input captcha-input"
+            type="text"
+            placeholder="答案"
+            autocomplete="off"
+            @keyup.enter="handleRegister"
+          />
+        </div>
+        <p v-if="errorMsg" class="error-text">{{ errorMsg }}</p>
+        <button class="submit-btn" :class="{ loading: submitting }" :disabled="submitting" @click="handleRegister">
+          <span v-if="submitting" class="btn-spinner"></span>
+          <span v-else>注册并登录</span>
+        </button>
+        <p class="reg-hint">注册即视为同意文明留言；本站数据仅用于个人站点展示</p>
+      </div>
+
+      <!-- 游客进入：始终在底部 -->
+      <div class="guest-section" v-if="page === 'login'">
         <p class="guest-hint">以游客身份浏览，仅可查看内容</p>
         <button class="guest-btn" @click="enterAsGuest">游客登录</button>
       </div>
@@ -80,18 +136,27 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { login, guestLogin } from '../utils/auth'
+import request from '../utils/request'
+import { adminLogin, userLogin, userRegister, guestLogin } from '../utils/auth'
 
 const router = useRouter()
-const mode = ref('guest')
+const page = ref('login')
+const loginAs = ref('user')
 const submitting = ref(false)
 const errorMsg = ref('')
 const usernameRef = ref(null)
 const passwordRef = ref(null)
 
 const form = reactive({ username: '', password: '' })
+const reg = reactive({
+  username: '', nickname: '', password: '', password2: '',
+  email: '', captchaId: '', captchaAnswer: ''
+})
+const captchaQuestion = ref('')
+
+const pageTitle = computed(() => page.value === 'login' ? '欢迎回来' : '创建账号')
 
 // ==================== Canvas 粒子系统 ====================
 const pageRef = ref(null)
@@ -224,11 +289,16 @@ onBeforeUnmount(() => {
 })
 
 // ==================== 业务逻辑 ====================
-const switchMode = (target) => {
-  mode.value = target
+const switchPage = (target) => {
+  page.value = target
   errorMsg.value = ''
-  form.username = ''
-  form.password = ''
+  if (target === 'login') nextTick(() => { usernameRef.value?.focus() })
+  else { reg.captchaAnswer = ''; refreshCaptcha() }
+}
+
+const switchLoginAs = (target) => {
+  loginAs.value = target
+  errorMsg.value = ''
   nextTick(() => { usernameRef.value?.focus() })
 }
 
@@ -242,13 +312,71 @@ const handleLogin = async () => {
   errorMsg.value = ''
   submitting.value = true
   try {
-    const result = await login(form.username, form.password)
-    if (result.success) { router.push('/') }
-    else { errorMsg.value = result.message }
+    const fn = loginAs.value === 'admin' ? adminLogin : userLogin
+    const result = await fn(form.username.trim(), form.password)
+    if (result.success) {
+      router.push(loginAs.value === 'admin' ? '/admin' : '/')
+    } else {
+      errorMsg.value = result.message
+    }
+  } finally { submitting.value = false }
+}
+
+const refreshCaptcha = async () => {
+  reg.captchaAnswer = ''
+  try {
+    const res = await request.get('/webuser/captcha')
+    if (res.data.code === 200) {
+      reg.captchaId = res.data.data.captchaId
+      captchaQuestion.value = res.data.data.question
+    } else {
+      captchaQuestion.value = ''
+      errorMsg.value = res.data.message || '获取验证码失败'
+    }
+  } catch {
+    captchaQuestion.value = ''
+    errorMsg.value = '获取验证码失败，请重试'
+  }
+}
+
+const handleRegister = async () => {
+  errorMsg.value = ''
+  const u = reg.username.trim()
+  if (!u || u.length < 3 || u.length > 20) { errorMsg.value = '用户名需 3-20 位'; return }
+  if (!/^[a-zA-Z0-9_]+$/.test(u)) { errorMsg.value = '用户名仅限字母、数字和下划线'; return }
+  if (!reg.password || reg.password.length < 6) { errorMsg.value = '密码至少 6 位'; return }
+  if (reg.password !== reg.password2) { errorMsg.value = '两次密码输入不一致'; return }
+  if (!reg.captchaId) { errorMsg.value = '请先点击验证码题目获取'; return }
+  if (!reg.captchaAnswer.trim()) { errorMsg.value = '请输入验证码答案'; return }
+
+  submitting.value = true
+  try {
+    const result = await userRegister({
+      username: u,
+      password: reg.password,
+      nickname: reg.nickname.trim(),
+      email: reg.email.trim(),
+      captchaId: reg.captchaId,
+      captchaAnswer: reg.captchaAnswer.trim()
+    })
+    if (result.success) {
+      router.push('/')
+    } else {
+      errorMsg.value = result.message
+      refreshCaptcha() // 无论验证码对错，都让题目刷新
+    }
   } finally { submitting.value = false }
 }
 
 const enterAsGuest = () => { guestLogin(); router.push('/') }
+
+// 外部页面（如留言板）跳转时预选 Tab
+const presetTab = sessionStorage.getItem('loginTab')
+if (presetTab === 'register' || presetTab === 'login') {
+  page.value = presetTab
+  sessionStorage.removeItem('loginTab')
+  if (presetTab === 'register') refreshCaptcha()
+}
 </script>
 
 <style scoped>
@@ -321,6 +449,73 @@ const enterAsGuest = () => { guestLogin(); router.push('/') }
   letter-spacing: 0.5px;
   user-select: none;
 }
+
+/* ---------- 顶端 Tab：登录 / 注册 ---------- */
+.mode-tabs {
+  position: relative;
+  display: flex;
+  gap: 0;
+  margin-bottom: 26px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 4px;
+  width: 100%;
+}
+.mode-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  border-radius: 9px;
+  position: relative;
+  z-index: 1;
+  transition: color 0.25s;
+  user-select: none;
+}
+.mode-tab.active { color: #fff; }
+.tab-ink {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- 验证码行 ---------- */
+.captcha-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+.captcha-question {
+  flex-shrink: 0;
+  min-width: 118px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+.captcha-question:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.captcha-input { flex: 1; margin-bottom: 0 !important; }
 
 /* ---------- 标题 ---------- */
 .card-title {
@@ -476,6 +671,14 @@ const enterAsGuest = () => { guestLogin(); router.push('/') }
   opacity: 0.55;
 }
 .submit-btn.loading { pointer-events: none; }
+
+.reg-hint {
+  margin: 14px 0 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.3px;
+  text-align: center;
+}
 
 .btn-spinner {
   display: inline-block;

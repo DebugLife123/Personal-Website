@@ -20,13 +20,15 @@ request.interceptors.request.use((config) => {
     return config
 }, (error) => Promise.reject(error))
 
-// 响应拦截：401 统一跳转登录
+// 响应拦截：401 处理——
+// 管理后台：清除登录态并跳回登录页（需要管理员身份才能看）；
+// 游客区：不打扰浏览，清掉失效令牌由调用方自行决定提示。
 request.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('auth')
-            if (!location.pathname.startsWith('/login')) {
+            if (location.pathname.startsWith('/admin')) {
+                localStorage.removeItem('auth')
                 location.href = '/login'
             }
         }

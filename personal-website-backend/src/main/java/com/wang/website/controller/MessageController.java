@@ -5,8 +5,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.website.entity.Message;
 import com.wang.website.entity.Resume;
+import com.wang.website.entity.WebUser;
 import com.wang.website.mapper.MessageMapper;
 import com.wang.website.mapper.ResumeMapper;
+import com.wang.website.mapper.WebUserMapper;
 import com.wang.website.common.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,15 +32,16 @@ public class MessageController {
     @Autowired
     private ResumeMapper resumeMapper;
 
+    @Autowired
+    private WebUserMapper webUserMapper;
+
     private static final String ADMIN_NICKNAME = "yu翔";
-    private static final String GUEST_NICKNAME = "游客";
-    private static final String GUEST_AVATAR = "";
 
     // ==================== 前台接口 ====================
 
     // 获取前台可见留言（仅已通过 + 未删除），置顶优先，按时间倒序
     @GetMapping("/list")
-    public Result<List<Message>> list() {
+    public Result<List<Message>> list(HttpServletRequest request) {
         try {
             QueryWrapper<Message> wrapper = new QueryWrapper<Message>()
                     .eq("status", "approved")
@@ -46,8 +49,10 @@ public class MessageController {
                     .orderByDesc("create_time");
             List<Message> allMessages = messageMapper.selectList(wrapper);
 
+            Integer myUserId = (Integer) request.getAttribute("authUserId");
             for (Message msg : allMessages) {
                 msg.setAdminPost(ADMIN_NICKNAME.equals(msg.getNickname()));
+                msg.setMine(myUserId != null && myUserId.equals(msg.getUserId()));
             }
 
             Map<Integer, List<Message>> replyMap = allMessages.stream()
@@ -71,7 +76,8 @@ public class MessageController {
         }
     }
 
-    // 提交新留言或回复（管理员身份由后端从 Token 解析，前端无需也无法自报）
+    // 提交新留言或回复（身份由后端从 Token 解析，前端无需也无法自报）
+    // 策略：仅注册用户可留言；注册用户留言免审核直接发布；管理员发言同前。
     @PostMapping("/add")
     public Result<String> add(@RequestBody Message message, HttpServletRequest request) {
         try {
@@ -89,11 +95,27 @@ public class MessageController {
                     message.setNickname(ADMIN_NICKNAME);
                     message.setAvatar("");
                 }
+                message.setUserId(null);
                 message.setStatus("approved"); // 管理员发言直接通过
             } else {
-                message.setNickname(GUEST_NICKNAME);
-                message.setAvatar(GUEST_AVATAR);
-                message.setStatus("pending"); // 游客留言待审核
+                // 注册用户留言：昵称/头像从账号带出，免审核，绑定账号
+                Object userIdAttr = request.getAttribute("authUserId");
+                if (userIdAttr == null) {
+                    return Result.error("请先登录后再留言");
+                }
+                WebUser webUser = webUserMapper.selectById((Integer) userIdAttr);
+                if (webUser == null || !"normal".equals(webUser.getStatus())) {
+                    return Result.error("账号状态异常，无法留言");
+                }
+                // 防灌水：同一用户 10 秒内只能发一条
+                if (!com.wang.website.util.RateLimitUtil.hit("msg:add:" + webUser.getId(), 1, 10_000L)) {
+                    return Result.error("发得太快啦，歇几秒再发");
+                }
+                message.setNickname(webUser.getNickname() != null && !webUser.getNickname().isEmpty()
+                        ? webUser.getNickname() : webUser.getUsername());
+                message.setAvatar(webUser.getAvatar() != null ? webUser.getAvatar() : "");
+                message.setUserId(webUser.getId());
+                message.setStatus("approved"); // 注册用户免审核
             }
             message.setEmail("");
             message.setLikes(0);
@@ -137,6 +159,25 @@ public class MessageController {
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("操作失败");
+        }
+    }
+
+    // 注册用户删除自己的留言（软删除；管理员请用 /delete/{id}）
+    @DeleteMapping("/mine/{id}")
+    public Result<String> deleteMine(@PathVariable Integer id, HttpServletRequest request) {
+        try {
+            Object userIdAttr = request.getAttribute("authUserId");
+            if (userIdAttr == null) return Result.error("请先登录");
+            Message msg = messageMapper.selectById(id);
+            if (msg == null || msg.getUserId() == null || !msg.getUserId().equals(userIdAttr)) {
+                return Result.error("只能删除自己的留言");
+            }
+            msg.setStatus("deleted");
+            messageMapper.updateById(msg);
+            return Result.success("已删除");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("删除失败");
         }
     }
 

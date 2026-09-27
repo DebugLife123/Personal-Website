@@ -1,10 +1,24 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTodayStatistic, getTotalStatistic } from '../utils/statistic'
 import { DataLine, ChatDotSquare } from '@element-plus/icons-vue'
-import { isAdmin } from '../utils/auth'
+import { isAdmin, isUser, currentUser } from '../utils/auth'
+
+const router = useRouter()
+
+// 只有注册用户/管理员能留言；游客仅可浏览
+const canPost = computed(() => isAdmin.value || isUser.value)
+const myName = computed(() => isAdmin.value ? '管理员' : (currentUser.value?.nickname || currentUser.value?.username || ''))
+const myAvatar = computed(() => isAdmin.value ? '' : (currentUser.value?.avatar || ''))
+const myInitial = computed(() => (myName.value || 'U').charAt(0).toUpperCase())
+
+const goLogin = (tab) => {
+  sessionStorage.setItem('loginTab', tab) // 'login' | 'register'
+  router.push('/login')
+}
 
 const messages = ref([])
 
@@ -48,6 +62,10 @@ const fetchMessages = async () => {
 }
 
 const submitMessage = async () => {
+  if (!canPost.value) {
+    ElMessage.warning('请先登录后再留言')
+    return
+  }
   if (!form.value.content.trim()) {
     return ElMessage.warning('请输入留言内容')
   }
@@ -55,9 +73,11 @@ const submitMessage = async () => {
   try {
     const res = await request.post('/message/add', { ...form.value })
     if (res.data.code === 200) {
-      ElMessage.success('留言成功！')
+      ElMessage.success('留言成功，已公开发布！')
       form.value.content = ''
       await fetchMessages()
+    } else {
+      ElMessage.error(res.data.message || '提交失败')
     }
   } catch (e) {
     ElMessage.error('提交失败')
@@ -113,7 +133,12 @@ const deleteMessage = async (msg) => {
   } catch (e) {}
 }
 
-  const openReplyForm = (msg) => {
+const openReplyForm = (msg) => {
+    if (!canPost.value) {
+      ElMessage.warning('请先登录后再回复')
+      goLogin('login')
+      return
+    }
     currentReplyMsg.value = msg
     replyForm.value = {
       content: '',
@@ -122,6 +147,21 @@ const deleteMessage = async (msg) => {
     }
     showReplyForm.value = true
   }
+
+const deleteOwnMessage = async (msg) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这条留言吗？',
+      '删除确认',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+    )
+    const res = await request.delete(`/message/mine/${msg.id}`)
+    if (res.data.code === 200) {
+      ElMessage.success('已删除')
+      await fetchMessages()
+    }
+  } catch (e) { /* 用户取消或失败则忽略 */ }
+}
 
 const submitReply = async () => {
   if (!replyForm.value.content.trim()) {
@@ -135,6 +175,8 @@ const submitReply = async () => {
       showReplyForm.value = false
       currentReplyMsg.value = null
       await fetchMessages()
+    } else {
+      ElMessage.error(res.data.message || '回复失败')
     }
   } catch (e) {
     ElMessage.error('回复失败')
@@ -199,7 +241,18 @@ onMounted(async () => {
           <!-- 写留言 -->
           <transition name="fade-up">
             <div class="post-card">
-              <div class="post-card-body">
+              <!-- 已登录（注册用户或管理员）：可写 -->
+              <div class="post-card-body" v-if="canPost">
+                <div class="post-who">
+                  <div class="post-who-avatar">
+                    <img v-if="myAvatar" :src="myAvatar" />
+                    <template v-else>{{ myInitial }}</template>
+                  </div>
+                  <div class="post-who-text">
+                    <span class="post-who-name">{{ myName }}</span>
+                    <span class="post-who-hint">{{ isAdmin ? '管理员发言' : '注册用户，留言即刻公开' }}</span>
+                  </div>
+                </div>
                 <el-input
                   v-model="form.content"
                   type="textarea"
@@ -220,6 +273,17 @@ onMounted(async () => {
                   >
                     {{ submitting ? '发布中…' : '发布留言' }}
                   </button>
+                </div>
+              </div>
+
+              <!-- 未登录：引导注册 -->
+              <div class="post-card-body login-gate" v-else>
+                <div class="gate-mark"><el-icon :size="32"><ChatDotSquare /></el-icon></div>
+                <p class="gate-title">登录后才能留言</p>
+                <p class="gate-sub">注册只需一个用户名和密码，留言即刻公开，不用等审核</p>
+                <div class="gate-actions">
+                  <button class="post-btn" @click="goLogin('register')">立即注册</button>
+                  <button class="ghost-btn" @click="goLogin('login')">已有账号？登录</button>
                 </div>
               </div>
             </div>
@@ -292,6 +356,9 @@ onMounted(async () => {
                     <button v-if="isAdmin" class="act del-act" @click="deleteMessage(msg)" title="删除">
                       <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
+                    <button v-else-if="msg.mine" class="act del-act" @click="deleteOwnMessage(msg)" title="删除我的留言">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
                   </div>
                 </header>
 
@@ -311,6 +378,9 @@ onMounted(async () => {
                           <span>{{ reply.likes || 0 }}</span>
                         </button>
                         <button v-if="isAdmin" class="act del-act" @click="deleteMessage(reply)" title="删除">
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                        <button v-else-if="reply.mine" class="act del-act" @click="deleteOwnMessage(reply)" title="删除我的回复">
                           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
                       </span>
@@ -487,6 +557,56 @@ onMounted(async () => {
 }
 .post-card:focus-within { box-shadow: var(--shadow-2); }
 .post-card-body { padding: 20px 22px 16px; }
+
+/* 已登录身份条 */
+.post-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.post-who-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #2a3346;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.post-who-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.post-who-text { display: flex; flex-direction: column; gap: 2px; }
+.post-who-name { font-size: 0.92rem; font-weight: 600; color: var(--ink); }
+.post-who-hint { font-size: 0.75rem; color: var(--ink-3); }
+
+/* 未登录引导 */
+.login-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 34px 24px 30px;
+}
+.gate-mark { color: var(--ink-3); margin-bottom: 12px; }
+.gate-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.gate-sub {
+  margin: 0 0 20px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  max-width: 320px;
+  line-height: 1.6;
+}
+.gate-actions { display: flex; gap: 12px; align-items: center; }
 
 .soft-input :deep(.el-textarea__inner) {
   border: 1px solid var(--line-2);

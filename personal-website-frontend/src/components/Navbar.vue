@@ -39,22 +39,48 @@
         <el-icon class="func-icon" @click="handleThemeToggle">
           <component :is="isDarkMode ? Sunny : Moon" />
         </el-icon>
-        <el-button v-if="isLoggedIn" class="logout-btn" text size="small" @click="handleLogout">退出</el-button>
+
+        <!-- 登录用户：头像 + 下拉 -->
+        <div v-if="isLoggedIn && !isAdmin" class="user-chip" @click="toggleUserMenu" ref="userChipRef">
+          <div class="user-chip-avatar">
+            <img v-if="currentUser?.avatar" :src="currentUser.avatar" />
+            <div v-else class="user-chip-initial">{{ userInitial }}</div>
+          </div>
+          <span class="user-chip-name">{{ displayName }}</span>
+          <el-icon class="user-chip-caret"><ArrowDown /></el-icon>
+          <transition name="menu-fade">
+            <div v-if="userMenuOpen" class="user-menu" @click.stop>
+              <div class="user-menu-item" @click="goProfile">
+                <el-icon><User /></el-icon>
+                <span>我的资料</span>
+              </div>
+              <div class="user-menu-divider"></div>
+              <div class="user-menu-item danger" @click="handleLogout">
+                <el-icon><SwitchButton /></el-icon>
+                <span>退出登录</span>
+              </div>
+            </div>
+          </transition>
+        </div>
+
+        <!-- 管理员直接退出 -->
+        <el-button v-else-if="isAdmin" class="logout-btn" text size="small" @click="handleLogout">退出</el-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   HomeFilled, Notebook, Document, Box, ChatLineRound,
-  VideoPlay, VideoPause, DArrowRight, Moon, Sunny, Headset
+  VideoPlay, VideoPause, DArrowRight, Moon, Sunny, Headset,
+  ArrowDown, User, SwitchButton
 } from '@element-plus/icons-vue'
 import musicPlayer from '../utils/musicPlayer'
 import request from '../utils/request'
-import { isLoggedIn, isAdmin, logout } from '../utils/auth'
+import { isLoggedIn, isAdmin, currentUser, logout } from '../utils/auth'
 
 const props = defineProps({
   isDarkMode: Boolean
@@ -89,7 +115,22 @@ const nextTrack = () => {
 
 const handleLogout = () => {
   logout()
+  userMenuOpen.value = false
   router.push('/login')
+}
+
+// 用户菜单
+const userMenuOpen = ref(false)
+const userChipRef = ref(null)
+const displayName = computed(() => currentUser.value?.nickname || currentUser.value?.username || '')
+const userInitial = computed(() => (displayName.value || 'U').charAt(0).toUpperCase())
+const toggleUserMenu = () => { userMenuOpen.value = !userMenuOpen.value }
+const goProfile = () => { userMenuOpen.value = false; router.push('/messages') }
+
+const onClickOutside = (e) => {
+  if (userChipRef.value && !userChipRef.value.contains(e.target)) {
+    userMenuOpen.value = false
+  }
 }
 
 const fetchPlaylist = async () => {
@@ -115,6 +156,11 @@ const fetchPlaylist = async () => {
 
 onMounted(() => {
   fetchPlaylist()
+  document.addEventListener('click', onClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside)
 })
 </script>
 
@@ -215,6 +261,81 @@ onMounted(() => {
   font-size: 0.82rem;
   letter-spacing: 0.5px;
 }
+
+/* 用户芯片 + 下拉 */
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  user-select: none;
+}
+.user-chip:hover { background: rgba(255, 255, 255, 0.16); }
+.user-chip-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.user-chip-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.user-chip-initial {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.user-chip-name {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 88px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-chip-caret { font-size: 0.7rem; color: rgba(255, 255, 255, 0.5); }
+
+.user-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 148px;
+  background: rgba(28, 28, 35, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.user-menu-item:hover { background: rgba(255, 255, 255, 0.08); color: white; }
+.user-menu-item.danger { color: #ff8a8a; }
+.user-menu-item.danger:hover { background: rgba(255, 138, 138, 0.1); color: #ffb3b3; }
+.user-menu-divider { height: 1px; background: rgba(255, 255, 255, 0.06); margin: 4px 0; }
+.menu-fade-enter-active, .menu-fade-leave-active { transition: opacity 0.18s, transform 0.18s; }
+.menu-fade-enter-from, .menu-fade-leave-to { opacity: 0; transform: translateY(-6px); }
 
 /* Music capsule */
 .music-capsule-wrapper {
