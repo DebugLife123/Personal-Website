@@ -46,8 +46,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import request from '../../utils/request'
+import { adminDark } from '../../utils/theme'
 import * as echarts from 'echarts'
 
 const categories = ref([])
@@ -77,15 +78,19 @@ const load = async () => {
 
 const renderChart = () => {
   if (!chartRef.value || !categories.value.length) return
+  chart?.dispose()
   chart = echarts.init(chartRef.value)
+  const dark = adminDark.value
   chart.setOption({
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    tooltip: dark
+      ? { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: 'rgba(26,26,32,0.96)', borderWidth: 0, textStyle: { color: '#ece8e4' } }
+      : { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '6%', bottom: '6%', top: '8%', containLabel: true },
-    xAxis: { type: 'category', data: categories.value.map(c => c.name), axisLabel: { color: '#666' } },
-    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { type: 'dashed', color: '#eee' } } },
+    xAxis: { type: 'category', data: categories.value.map(c => c.name), axisLabel: { color: dark ? '#9896a2' : '#666' } },
+    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { type: 'dashed', color: dark ? '#24242c' : '#eee' } }, axisLabel: { color: dark ? '#9896a2' : '#666' } },
     series: [{
       type: 'bar', barWidth: 28,
-      itemStyle: { borderRadius: [6, 6, 0, 0], color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#6c5fa0' }, { offset: 1, color: '#c8c4d8' }]) },
+      itemStyle: { borderRadius: [6, 6, 0, 0], color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#6c5fa0' }, { offset: 1, color: dark ? '#4a4560' : '#c8c4d8' }]) },
       data: categories.value.map(c => c.count)
     }]
   })
@@ -94,6 +99,7 @@ const renderChart = () => {
 const onResize = () => chart?.resize()
 onMounted(async () => { await load(); await nextTick(); renderChart(); window.addEventListener('resize', onResize) })
 onUnmounted(() => { window.removeEventListener('resize', onResize); chart?.dispose() })
+watch(adminDark, async () => { await nextTick(); renderChart() })
 </script>
 
 <style scoped>

@@ -1,20 +1,32 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { recordPageView } from './utils/statistic'
 import { initTheme, toggleTheme, getTheme } from './utils/theme'
 import Navbar from './components/Navbar.vue'
 import request from './utils/request'
 
-const isDarkMode = ref(getTheme() === 'dark')
+const route = useRoute()
+
+// 前台主题（导航栏上的开关只管前台）
+const isDarkMode = ref(getTheme('site') === 'dark')
 
 const handleThemeToggle = () => {
-  const newTheme = toggleTheme()
+  const newTheme = toggleTheme('site')
   isDarkMode.value = newTheme === 'dark'
 }
 
+// 主题作用域跟随路由：后台用后台自己的主题，前台用前台的主题，互不干扰
+const applyThemeScope = (path) => {
+  const isAdminArea = path.startsWith('/admin')
+  initTheme(isAdminArea ? 'admin' : 'site')
+  isDarkMode.value = getTheme('site') === 'dark'
+}
+
+watch(() => route.path, applyThemeScope, { immediate: true })
+
 onMounted(() => {
   recordPageView()
-  initTheme()
   // 记录访客明细
   request.post('/visitor/record', { path: location.pathname }).catch(() => {})
 })
@@ -499,5 +511,138 @@ html.dark .global-nav {
   background: rgba(9, 9, 12, 0.8) !important;
   backdrop-filter: saturate(180%) blur(24px);
   box-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   🌙 管理后台专属暗色（html.admin-scope 限定，绝不外溢到前台）
+   后台主题与前台独立：这里只处理后台自身的固定浅色
+   ============================================================ */
+
+/* ---- 后台骨架：侧栏 / 顶栏 / 内容区 ---- */
+html.admin-scope.dark .admin-layout { background: var(--bg-page); }
+
+html.admin-scope.dark .admin-sidebar {
+  background: var(--bg-card);
+  box-shadow: 1px 0 0 var(--border);
+}
+html.admin-scope.dark .sidebar-header { border-bottom-color: var(--border); }
+html.admin-scope.dark .sidebar-logo,
+html.admin-scope.dark .sidebar-logo-mini { color: #a99cf0; }
+
+html.admin-scope.dark .sidebar-menu { background: var(--bg-card) !important; }
+html.admin-scope.dark .sidebar-menu .el-menu-item { color: var(--text-secondary); }
+html.admin-scope.dark .sidebar-menu .el-menu-item:hover {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary);
+}
+html.admin-scope.dark .sidebar-menu .el-menu-item.is-active {
+  background: linear-gradient(135deg, rgba(124, 108, 200, 0.28), rgba(124, 108, 200, 0.16)) !important;
+  color: #b9aef5 !important;
+}
+html.admin-scope.dark .sidebar-menu .el-menu-item.is-active .el-icon { color: #b9aef5; }
+
+html.admin-scope.dark .admin-topbar {
+  background: var(--bg-card);
+  box-shadow: 0 1px 0 var(--border);
+}
+html.admin-scope.dark .collapse-btn { color: var(--text-muted); }
+html.admin-scope.dark .collapse-btn:hover { color: #b9aef5; }
+html.admin-scope.dark .topbar-title { color: var(--text-primary); }
+html.admin-scope.dark .admin-user { color: var(--text-secondary); }
+
+/* ---- 卡片与容器 ---- */
+html.admin-scope.dark .admin-content .el-card,
+html.admin-scope.dark .admin-content .main-card,
+html.admin-scope.dark .admin-content .stat-card,
+html.admin-scope.dark .admin-content .chart-card,
+html.admin-scope.dark .admin-content .sum-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+html.admin-scope.dark .admin-content .stat-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+html.admin-scope.dark .admin-content .el-card__header,
+html.admin-scope.dark .admin-content .card-header {
+  border-bottom-color: var(--border);
+  color: var(--text-primary);
+}
+
+/* ---- 文字层级（各页面写死的灰阶统一抬到暗色可读值）---- */
+html.admin-scope.dark .admin-content .stat-card-value,
+html.admin-scope.dark .admin-content .card-title,
+html.admin-scope.dark .admin-content .detail-content,
+html.admin-scope.dark .admin-content .detail-nickname,
+html.admin-scope.dark .admin-content .detail-reply-nickname,
+html.admin-scope.dark .admin-content .reply-original-nickname,
+html.admin-scope.dark .admin-content .preview-title,
+html.admin-scope.dark .admin-content .toolbar-title,
+html.admin-scope.dark .admin-content .user-cell-name,
+html.admin-scope.dark .admin-content .title-input .el-input__inner {
+  color: var(--text-primary);
+}
+
+html.admin-scope.dark .admin-content .detail-reply-content,
+html.admin-scope.dark .admin-content .reply-original-content,
+html.admin-scope.dark .admin-content .section-label,
+html.admin-scope.dark .admin-content .reset-tip,
+html.admin-scope.dark .admin-content .dur-sep,
+html.admin-scope.dark .admin-content .el-form-item__label {
+  color: var(--text-secondary);
+}
+
+html.admin-scope.dark .admin-content .stat-card-label,
+html.admin-scope.dark .admin-content .detail-label,
+html.admin-scope.dark .admin-content .detail-time,
+html.admin-scope.dark .admin-content .detail-reply-time,
+html.admin-scope.dark .admin-content .reply-original-time,
+html.admin-scope.dark .admin-content .reply-editor-label,
+html.admin-scope.dark .admin-content .time-text,
+html.admin-scope.dark .admin-content .duration-text,
+html.admin-scope.dark .admin-content .audio-name,
+html.admin-scope.dark .admin-content .dur-hint,
+html.admin-scope.dark .admin-content .cover-url-label,
+html.admin-scope.dark .admin-content .preview-artist,
+html.admin-scope.dark .admin-content .preview-duration,
+html.admin-scope.dark .admin-content .cat-count,
+html.admin-scope.dark .admin-content .sum-label,
+html.admin-scope.dark .admin-content .toolbar-left .total,
+html.admin-scope.dark .admin-content .user-cell-username {
+  color: var(--text-muted);
+}
+
+/* ---- 分隔线 / 边框 ---- */
+html.admin-scope.dark .admin-content .detail-reply-item,
+html.admin-scope.dark .admin-content .reply-original-card {
+  border-color: var(--border);
+  background: var(--bg-elevated);
+}
+html.admin-scope.dark .admin-content .preview-cover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- 表格：覆盖各页 :header-cell-style 的内联浅色 ---- */
+html.admin-scope.dark .admin-content .el-table th.el-table__cell {
+  background: var(--bg-elevated) !important;
+  color: var(--text-secondary) !important;
+  border-bottom-color: var(--border) !important;
+}
+html.admin-scope.dark .admin-content .el-table td.el-table__cell {
+  border-bottom-color: var(--border-light) !important;
+}
+html.admin-scope.dark .admin-content .el-table tr {
+  background: var(--bg-card);
+}
+html.admin-scope.dark .admin-content .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: var(--bg-elevated) !important;
+}
+html.admin-scope.dark .admin-content .el-table__empty-block { background: var(--bg-card); }
+
+/* ---- 编辑器（v-md-editor）在后台暗色下的容器 ---- */
+html.admin-scope.dark .admin-content .editor-toolbar,
+html.admin-scope.dark .admin-content .editor-body {
+  background: var(--bg-card);
+  box-shadow: 0 1px 0 var(--border);
 }
 </style>

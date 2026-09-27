@@ -11,9 +11,9 @@
         :collapse="store.sidebarCollapsed"
         :router="true"
         class="sidebar-menu"
-        background-color="#fff"
-        text-color="#555"
-        active-text-color="#6c5fa0"
+        :background-color="menuColors.bg"
+        :text-color="menuColors.text"
+        :active-text-color="menuColors.active"
       >
         <el-menu-item index="/admin/dashboard">
           <el-icon><Odometer /></el-icon>
@@ -78,6 +78,13 @@
             <el-icon><HomeFilled /></el-icon>
             返回前台
           </el-button>
+          <!-- 后台主题开关：只作用于后台，与前台主题互不影响 -->
+          <el-tooltip :content="adminDark ? '后台切换到亮色' : '后台切换到暗色'" placement="bottom">
+            <el-icon class="theme-toggle" @click="handleAdminThemeToggle">
+              <Sunny v-if="adminDark" />
+              <Moon v-else />
+            </el-icon>
+          </el-tooltip>
           <span class="admin-user">
             <el-icon><UserFilled /></el-icon>
             {{ username }}
@@ -101,13 +108,22 @@ import { useAdminStore } from '../../stores/admin'
 import {
   Odometer, Document, CollectionTag, ChatDotSquare, ChatLineRound,
   Headset, User, Tickets, UserFilled, Setting, Avatar,
-  Fold, Expand, HomeFilled
+  Fold, Expand, HomeFilled, Moon, Sunny
 } from '@element-plus/icons-vue'
 import { logout, isAdmin, currentUser } from '../../utils/auth'
+import { adminDark, toggleTheme } from '../../utils/theme'
 
 const router = useRouter()
 const route = useRoute()
 const store = useAdminStore()
+
+// 后台菜单配色随后台主题走（Element Plus 菜单颜色是 props，需要动态传）
+const menuColors = computed(() => adminDark.value
+  ? { bg: '#131316', text: '#c8c4cc', active: '#b9aef5' }
+  : { bg: '#fff', text: '#555', active: '#6c5fa0' })
+
+// 仅切换后台主题，前台主题不受影响
+const handleAdminThemeToggle = () => { toggleTheme('admin') }
 
 const pageTitles = {
   '/admin/dashboard': '仪表盘',
@@ -255,6 +271,17 @@ onMounted(() => {
   gap: 6px;
   font-size: 0.9rem;
   color: #555;
+}
+
+.theme-toggle {
+  font-size: 1.15rem;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s, transform 0.35s ease;
+}
+.theme-toggle:hover {
+  color: #6c5fa0;
+  transform: rotate(25deg);
 }
 
 /* ---- Content ---- */

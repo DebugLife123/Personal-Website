@@ -4,7 +4,7 @@
     <el-row :gutter="16" class="stat-row">
       <el-col :xs="12" :sm="8" :md="4" v-for="card in statCards" :key="card.label">
         <div class="stat-card" :style="{ borderTopColor: card.color }">
-          <div class="stat-card-icon" :style="{ color: card.color, background: card.bg }">
+          <div class="stat-card-icon" :style="iconStyle(card)">
             <el-icon :size="22"><component :is="card.icon" /></el-icon>
           </div>
           <div class="stat-card-info">
@@ -64,9 +64,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import request from '../../utils/request'
+import { adminDark } from '../../utils/theme'
 import { View, User, TrendCharts, Plus, Document, ChatLineRound } from '@element-plus/icons-vue'
 
 const pvChartRef = ref(null)
@@ -79,13 +80,37 @@ let topChart = null
 let categoryChart = null
 
 const statCards = ref([
-  { icon: View, value: '-', label: '总浏览量', color: '#6c5fa0', bg: '#f0ecf6' },
-  { icon: User, value: '-', label: '总访客数', color: '#5a8d7a', bg: '#eaf5f0' },
-  { icon: TrendCharts, value: '-', label: '今日浏览', color: '#c08a5c', bg: '#f6f0e8' },
-  { icon: Plus, value: '-', label: '今日新访客', color: '#6a8aaa', bg: '#e8eef6' },
-  { icon: Document, value: '-', label: '文章总数', color: '#8a6a9a', bg: '#f2ecf6' },
-  { icon: ChatLineRound, value: '-', label: '留言总数', color: '#9a7a6a', bg: '#f6f0ec' },
+  { icon: View, value: '-', label: '总浏览量', color: '#6c5fa0', bg: '#f0ecf6', darkColor: '#b3a6f2', darkBg: 'rgba(124,108,200,0.18)' },
+  { icon: User, value: '-', label: '总访客数', color: '#5a8d7a', bg: '#eaf5f0', darkColor: '#7fc9aa', darkBg: 'rgba(90,141,122,0.18)' },
+  { icon: TrendCharts, value: '-', label: '今日浏览', color: '#c08a5c', bg: '#f6f0e8', darkColor: '#e0b184', darkBg: 'rgba(192,138,92,0.18)' },
+  { icon: Plus, value: '-', label: '今日新访客', color: '#6a8aaa', bg: '#e8eef6', darkColor: '#93b8e0', darkBg: 'rgba(106,138,170,0.18)' },
+  { icon: Document, value: '-', label: '文章总数', color: '#8a6a9a', bg: '#f2ecf6', darkColor: '#c39ad8', darkBg: 'rgba(138,106,154,0.18)' },
+  { icon: ChatLineRound, value: '-', label: '留言总数', color: '#9a7a6a', bg: '#f6f0ec', darkColor: '#d3a58d', darkBg: 'rgba(154,122,106,0.18)' },
 ])
+
+// 统计卡图标配色随主题切换
+const iconStyle = (card) => adminDark.value
+  ? { color: card.darkColor || '#b3a6f2', background: card.darkBg || 'rgba(255,255,255,0.06)' }
+  : { color: card.color, background: card.bg }
+
+// 图表配色随主题切换（ECharts 颜色是 JS 配置，必须在初始化时注入）
+const tc = computed(() => adminDark.value
+  ? {
+      axisLabel: '#9896a2', axisLine: '#2a2a34', splitLine: '#24242c',
+      legend: '#c8c4cc', barFrom: '#4a4560', pieBorder: '#131316',
+      tooltipBg: 'rgba(26,26,32,0.96)', tooltipText: '#ece8e4',
+    }
+  : {
+      axisLabel: '#999', axisLine: '#e8e8ec', splitLine: '#f0f0f0',
+      legend: '#666', barFrom: '#c8c4d8', pieBorder: '#fff',
+      tooltipBg: 'rgba(255,255,255,0.95)', tooltipText: '',
+    })
+
+const tooltipStyle = () => ({
+  backgroundColor: tc.value.tooltipBg,
+  borderWidth: 0,
+  textStyle: tc.value.tooltipText ? { color: tc.value.tooltipText } : undefined,
+})
 
 // 近7天数据（真实接口填充）
 const days7 = ref(['-','-','-','-','-','-','-'])
@@ -114,19 +139,19 @@ const initPvChart = () => {
   if (!pvChartRef.value) return
   pvChart = echarts.init(pvChartRef.value)
   pvChart.setOption({
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 0 },
+    tooltip: { trigger: 'axis', ...tooltipStyle() },
     grid: { left: '3%', right: '4%', bottom: '8%', top: '8%', containLabel: true },
     xAxis: {
       type: 'category',
       data: days7.value,
-      axisLine: { lineStyle: { color: lightGray } },
-      axisLabel: { color: '#999', fontSize: 11 },
+      axisLine: { lineStyle: { color: tc.value.axisLine } },
+      axisLabel: { color: tc.value.axisLabel, fontSize: 11 },
       axisTick: { show: false },
     },
     yAxis: {
       type: 'value',
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
-      axisLabel: { color: '#999', fontSize: 11 },
+      splitLine: { lineStyle: { color: tc.value.splitLine, type: 'dashed' } },
+      axisLabel: { color: tc.value.axisLabel, fontSize: 11 },
     },
     series: [{
       type: 'line',
@@ -147,19 +172,19 @@ const initUvChart = () => {
   if (!uvChartRef.value) return
   uvChart = echarts.init(uvChartRef.value)
   uvChart.setOption({
-    tooltip: { trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.95)', borderWidth: 0 },
+    tooltip: { trigger: 'axis', ...tooltipStyle() },
     grid: { left: '3%', right: '4%', bottom: '8%', top: '8%', containLabel: true },
     xAxis: {
       type: 'category',
       data: days7.value,
-      axisLine: { lineStyle: { color: lightGray } },
-      axisLabel: { color: '#999', fontSize: 11 },
+      axisLine: { lineStyle: { color: tc.value.axisLine } },
+      axisLabel: { color: tc.value.axisLabel, fontSize: 11 },
       axisTick: { show: false },
     },
     yAxis: {
       type: 'value',
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
-      axisLabel: { color: '#999', fontSize: 11 },
+      splitLine: { lineStyle: { color: tc.value.splitLine, type: 'dashed' } },
+      axisLabel: { color: tc.value.axisLabel, fontSize: 11 },
     },
     series: [{
       type: 'line',
@@ -188,20 +213,19 @@ const initTopArticles = () => {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderWidth: 0,
+      ...tooltipStyle(),
     },
     grid: { left: '3%', right: '6%', bottom: '3%', top: '3%', containLabel: true },
     xAxis: {
       type: 'value',
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
-      axisLabel: { color: '#999', fontSize: 10 },
+      splitLine: { lineStyle: { color: tc.value.splitLine, type: 'dashed' } },
+      axisLabel: { color: tc.value.axisLabel, fontSize: 10 },
     },
     yAxis: {
       type: 'category',
       data: names,
       axisLine: { show: false },
-      axisLabel: { color: '#666', fontSize: 11, width: 80, overflow: 'truncate' },
+      axisLabel: { color: tc.value.legend, fontSize: 11, width: 80, overflow: 'truncate' },
       axisTick: { show: false },
     },
     series: [{
@@ -210,7 +234,7 @@ const initTopArticles = () => {
       itemStyle: {
         borderRadius: [0, 6, 6, 0],
         color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: '#c8c4d8' },
+          { offset: 0, color: tc.value.barFrom },
           { offset: 1, color: primaryColor },
         ])
       },
@@ -222,11 +246,10 @@ const initTopArticles = () => {
 const initCategoryChart = () => {
   if (!categoryRef.value) return
   categoryChart = echarts.init(categoryRef.value)
-  provinceChart.setOption({
+  categoryChart.setOption({
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderWidth: 0,
+      ...tooltipStyle(),
       formatter: '{b}: {c} ({d}%)',
     },
     series: [{
@@ -236,13 +259,13 @@ const initCategoryChart = () => {
       avoidLabelOverlap: true,
       label: { show: false },
       emphasis: {
-        label: { show: true, fontSize: 13, fontWeight: 'bold' },
+        label: { show: true, fontSize: 13, fontWeight: 'bold', color: tc.value.tooltipText || '#303133' },
         itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.15)' },
       },
       labelLine: { show: false },
       itemStyle: {
         borderRadius: 4,
-        borderColor: '#fff',
+        borderColor: tc.value.pieBorder,
         borderWidth: 2,
       },
       color: ['#6c5fa0', '#7a8aaa', '#5a8d7a', '#c08a5c', '#8a6a9a', '#6a8aaa', '#9a7a6a', '#b8968a', '#d0d0d8'],
@@ -254,7 +277,7 @@ const initCategoryChart = () => {
       top: 'center',
       itemWidth: 10,
       itemHeight: 10,
-      textStyle: { color: '#666', fontSize: 11 },
+      textStyle: { color: tc.value.legend, fontSize: 11 },
     },
   })
 }
@@ -311,12 +334,12 @@ const loadStats = async () => {
     const artsArr = Array.isArray(arts) ? arts : []
     const msgsArr = Array.isArray(msgs) ? msgs : []
     statCards.value = [
-      { icon: View, value: totalSt ? totalSt.pageViews : '-', label: '总浏览量', color: '#6c5fa0', bg: '#f0ecf6' },
-      { icon: User, value: totalSt ? totalSt.uniqueVisitors : '-', label: '总访客数', color: '#5a8d7a', bg: '#eaf5f0' },
-      { icon: TrendCharts, value: today ? today.pageViews : '-', label: '今日浏览', color: '#c08a5c', bg: '#f6f0e8' },
-      { icon: Plus, value: today ? today.uniqueVisitors : '-', label: '今日新访客', color: '#6a8aaa', bg: '#e8eef6' },
-      { icon: Document, value: artsArr.length, label: '文章总数', color: '#8a6a9a', bg: '#f2ecf6' },
-      { icon: ChatLineRound, value: msgsArr.length, label: '留言总数', color: '#9a7a6a', bg: '#f6f0ec' },
+      { icon: View, value: totalSt ? totalSt.pageViews : '-', label: '总浏览量', color: '#6c5fa0', bg: '#f0ecf6', darkColor: '#b3a6f2', darkBg: 'rgba(124,108,200,0.18)' },
+      { icon: User, value: totalSt ? totalSt.uniqueVisitors : '-', label: '总访客数', color: '#5a8d7a', bg: '#eaf5f0', darkColor: '#7fc9aa', darkBg: 'rgba(90,141,122,0.18)' },
+      { icon: TrendCharts, value: today ? today.pageViews : '-', label: '今日浏览', color: '#c08a5c', bg: '#f6f0e8', darkColor: '#e0b184', darkBg: 'rgba(192,138,92,0.18)' },
+      { icon: Plus, value: today ? today.uniqueVisitors : '-', label: '今日新访客', color: '#6a8aaa', bg: '#e8eef6', darkColor: '#93b8e0', darkBg: 'rgba(106,138,170,0.18)' },
+      { icon: Document, value: artsArr.length, label: '文章总数', color: '#8a6a9a', bg: '#f2ecf6', darkColor: '#c39ad8', darkBg: 'rgba(138,106,154,0.18)' },
+      { icon: ChatLineRound, value: msgsArr.length, label: '留言总数', color: '#9a7a6a', bg: '#f6f0ec', darkColor: '#d3a58d', darkBg: 'rgba(154,122,106,0.18)' },
     ]
 
     // TOP 文章
@@ -347,6 +370,17 @@ onMounted(async () => {
     initCategoryChart()
   })
   window.addEventListener('resize', resizeAll)
+})
+
+// 后台主题切换后重建图表（ECharts 颜色在初始化时注入，需重新实例化）
+watch(adminDark, async () => {
+  await nextTick()
+  pvChart?.dispose(); uvChart?.dispose(); topChart?.dispose(); categoryChart?.dispose()
+  pvChart = uvChart = topChart = categoryChart = null
+  initPvChart()
+  initUvChart()
+  initTopArticles()
+  initCategoryChart()
 })
 
 onUnmounted(() => {

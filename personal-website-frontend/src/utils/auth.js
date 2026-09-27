@@ -7,17 +7,20 @@ const isLoggedIn = ref(false)       // 是否已登录（user 或 admin）
 const currentUser = ref(null)       // { username, nickname?, avatar?, id? }
 
 // 管理员身份是否已通过服务端校验（防止 localStorage 伪造）
-let adminVerified = false
+// 必须是响应式 ref：isAdmin 是 computed，若用普通变量，
+// checkAuth 里「先设 authType 再等待校验」的顺序会让 computed 缓存住 false，
+// 导致刷新后台页面时被判定为非管理员并踢回首页。
+const adminVerified = ref(false)
 let verifyPromise = null
 
-const isAdmin = computed(() => authType.value === 'admin' && adminVerified)
+const isAdmin = computed(() => authType.value === 'admin' && adminVerified.value)
 const isUser  = computed(() => authType.value === 'user')
 
 const _clearAuth = () => {
   authType.value = 'guest'
   isLoggedIn.value = false
   currentUser.value = null
-  adminVerified = false
+  adminVerified.value = false
   verifyPromise = null
   localStorage.removeItem('auth')
 }
@@ -28,7 +31,7 @@ const adminLogin = async (username, password) => {
     const res = await request.post('/user/login', { username, password })
     if (res.data.code === 200) {
       const data = res.data.data
-      adminVerified = true
+      adminVerified.value = true
       verifyPromise = null
       authType.value = 'admin'
       isLoggedIn.value = true
@@ -51,7 +54,7 @@ const userLogin = async (username, password) => {
       const p = data.profile || {}
       authType.value = 'user'
       isLoggedIn.value = true
-      adminVerified = false
+      adminVerified.value = false
       verifyPromise = null
       currentUser.value = { id: p.id, username: p.username, nickname: p.nickname, avatar: p.avatar, email: p.email }
       localStorage.setItem('auth', JSON.stringify({ type: 'user', token: data.token, username: p.username }))
@@ -72,7 +75,7 @@ const userRegister = async (payload) => {
       const p = data.profile || {}
       authType.value = 'user'
       isLoggedIn.value = true
-      adminVerified = false
+      adminVerified.value = false
       verifyPromise = null
       currentUser.value = { id: p.id, username: p.username, nickname: p.nickname, avatar: p.avatar, email: p.email }
       localStorage.setItem('auth', JSON.stringify({ type: 'user', token: data.token, username: p.username }))
@@ -103,11 +106,11 @@ const logout = () => {
 
 // 回源校验管理员 Token（同一轮会话只校验一次）
 const verifyAdminToken = async () => {
-  if (adminVerified && authType.value === 'admin') return true
+  if (adminVerified.value && authType.value === 'admin') return true
   verifyPromise ??= request.get('/user/check')
     .then((res) => {
       if (res.data.code === 200) {
-        adminVerified = true
+        adminVerified.value = true
         return true
       }
       _clearAuth()
