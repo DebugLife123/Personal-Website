@@ -367,9 +367,17 @@ const buildPhotos = (items) => {
     const r = Math.sqrt(Math.max(0, 1 - y * y))
     const theta = golden * i
     const jitter = 0.86 + Math.random() * 0.28
-    const px = Math.cos(theta) * r * radius * jitter
-    const py = y * radius * 0.62 * jitter
-    const pz = Math.sin(theta) * r * radius * jitter
+    let px = Math.cos(theta) * r * radius * jitter
+    let py = y * radius * 0.62 * jitter
+    let pz = Math.sin(theta) * r * radius * jitter
+
+    // 照片很少时：正面朝相机排开，避免只看到侧边
+    const fewMode = n <= 3
+    if (fewMode) {
+      px = (i - (n - 1) / 2) * 190
+      py = 10
+      pz = 0
+    }
 
     const { tex, aspect } = item.card
     const w = aspect >= 1 ? maxDim : maxDim * aspect
@@ -386,8 +394,12 @@ const buildPhotos = (items) => {
       })
     )
     mesh.position.set(px, py, pz)
-    // 朝向球外：相机在球壳外侧，这样看到的是正面（否则带文字的图会镜像）
-    mesh.lookAt(px * 2, py * 2, pz * 2)
+    if (fewMode) {
+      mesh.lookAt(px, py, 1200)
+    } else {
+      // 朝向球外：相机在球壳外侧，这样看到的是正面（否则带文字的图会镜像）
+      mesh.lookAt(px * 2, py * 2, pz * 2)
+    }
     mesh.userData = {
       photo: item.photo,
       baseScale: 1,
