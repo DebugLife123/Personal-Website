@@ -5,17 +5,18 @@
     <!-- 四周压暗，让视线聚焦中央 -->
     <div class="vignette"></div>
 
-    <!-- 顶部工具栏 -->
+    <!-- 顶部工具栏（位于站点导航栏下方） -->
     <div class="top-bar">
-      <button class="glass-btn" @click="goGrid">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5M11 18l-6-6 6-6" />
+      <button class="glass-btn" @click="resetView" title="把镜头拉回初始位置">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7" />
+          <path d="M3 4v5h5" />
         </svg>
-        返回网格
+        重置视角
       </button>
       <div class="top-title">
         <span class="dot"></span>
-        图库 · 沉浸模式
+        图库 · 照片墙
         <span class="count" v-if="photos.length">{{ photos.length }} 张</span>
       </div>
       <div class="top-right">
@@ -35,8 +36,7 @@
     <!-- 空状态 -->
     <div v-if="!loading && photos.length === 0" class="empty">
       <p class="empty-title">图库还是空的</p>
-      <p class="empty-sub">去后台上传几张照片，这里就会亮起来</p>
-      <button class="glass-btn" @click="goGrid">返回网格</button>
+      <p class="empty-sub">到后台「图库管理」上传几张照片，这里就会亮起来</p>
     </div>
 
     <!-- 照片详情 -->
@@ -93,11 +93,8 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import request from '../utils/request'
-import { getTheme } from '../utils/theme'
 
-const router = useRouter()
 const canvasHost = ref(null)
 
 const photos = ref([])
@@ -118,6 +115,7 @@ let disposed = false
 const pointer = new (class { constructor() { this.x = 0; this.y = 0 } })()
 let hovered = null
 let focusTarget = null
+let pullHome = false
 let homeDistance = 470
 
 const REDUCED_MOTION = typeof window !== 'undefined'
@@ -498,6 +496,13 @@ const closeDetail = () => {
   }
 }
 
+// 把镜头拉回初始位置
+const resetView = () => {
+  focusTarget = null
+  pullHome = true
+  closeDetail()
+}
+
 const step = (delta) => {
   const total = photos.value.length
   if (!total) return
@@ -552,8 +557,15 @@ const animate = () => {
     const dir = focusTarget.clone().normalize()
     const desired = focusTarget.clone().add(dir.multiplyScalar(210))
     camera.position.lerp(desired, 0.035)
+    pullHome = false
   } else {
     controls.target.lerp(new THREE.Vector3(0, 0, 0), 0.03)
+    // 「重置视角」：把相机也拉回初始机位
+    if (pullHome) {
+      const home = new THREE.Vector3(0, 40, homeDistance)
+      camera.position.lerp(home, 0.06)
+      if (camera.position.distanceTo(home) < 4) pullHome = false
+    }
   }
 
   controls.update()
@@ -561,8 +573,6 @@ const animate = () => {
 }
 
 // ==================== 生命周期 ====================
-const goGrid = () => router.push('/gallery')
-
 const bootstrap = async () => {
   THREE = await import('three')
   const mod = await import('three/examples/jsm/controls/OrbitControls.js')
@@ -698,10 +708,10 @@ onBeforeUnmount(() => {
   );
 }
 
-/* ---------- 顶部栏 ---------- */
+/* ---------- 顶部栏（让开站点导航栏 65px） ---------- */
 .top-bar {
   position: absolute;
-  top: 0;
+  top: 65px;
   left: 0;
   right: 0;
   z-index: 5;
@@ -709,8 +719,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 24px;
-  background: linear-gradient(180deg, rgba(4, 6, 13, 0.72) 0%, rgba(4, 6, 13, 0) 100%);
+  padding: 16px 24px 22px;
+  background: linear-gradient(180deg, rgba(4, 6, 13, 0.66) 0%, rgba(4, 6, 13, 0) 100%);
   pointer-events: none;
 }
 
@@ -975,7 +985,7 @@ onBeforeUnmount(() => {
 /* ---------- 响应式 ---------- */
 @media (max-width: 900px) {
   .hint, .fps-hint { display: none; }
-  .top-bar { padding: 14px 16px; }
+  .top-bar { padding: 12px 16px 18px; }
   .detail { padding: 16px; }
   .detail-panel { grid-template-columns: 1fr; max-height: calc(100vh - 32px); }
   .detail-image { min-height: 180px; }

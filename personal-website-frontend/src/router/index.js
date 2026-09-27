@@ -33,16 +33,15 @@ const routes = [
     component: () => import('../views/Projects.vue')
   },
   {
+    // 图库即沉浸式照片墙（全屏 three.js 场景）
     path: '/gallery',
     name: 'Gallery',
-    component: () => import('../views/Gallery.vue')
+    component: () => import('../views/GallerySpace.vue')
   },
   {
-    // 沉浸模式：独立全屏页面（three.js 粒子照片墙）
+    // 兼容旧链接
     path: '/gallery/space',
-    name: 'GallerySpace',
-    meta: { hideNav: true },
-    component: () => import('../views/GallerySpace.vue')
+    redirect: '/gallery'
   },
   { path: '/message', redirect: '/messages' },
   { path: '/blog', component: () => import('../views/Blog.vue') },
