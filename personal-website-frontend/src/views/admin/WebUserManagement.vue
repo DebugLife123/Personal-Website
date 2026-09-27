@@ -1,17 +1,26 @@
 <template>
   <div class="webuser-page">
     <el-card shadow="never" class="main-card">
+      <!-- 说明 -->
+      <div class="intro">
+        <el-icon><InfoFilled /></el-icon>
+        <span>
+          访客用「形象 + 昵称」直接同步身份，<b>昵称即唯一标识</b>。
+          同名即同一身份，因此这里按昵称管理：可禁言、改名（纠正冒充）、删除。
+        </span>
+      </div>
+
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <span class="total">共 {{ total }} 位注册用户</span>
+          <span class="total">共 {{ total }} 个身份</span>
         </div>
         <div class="toolbar-right">
           <el-input
             v-model="keyword"
-            placeholder="搜索用户名 / 昵称 / 邮箱"
+            placeholder="搜索昵称 / IP"
             clearable
-            style="width: 240px"
+            style="width: 220px"
             @keyup.enter="loadUsers(1)"
             @clear="loadUsers(1)"
           />
@@ -20,36 +29,43 @@
         </div>
       </div>
 
-      <!-- 用户表 -->
+      <!-- 身份表 -->
       <el-table :data="users" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column label="用户" min-width="170">
+        <el-table-column label="身份" min-width="180">
           <template #default="{ row }">
             <div class="user-cell">
-              <div class="user-cell-avatar">{{ (row.nickname || row.username || '?').charAt(0).toUpperCase() }}</div>
+              <div class="user-cell-avatar">
+                <img v-if="avatarUrl(row.avatar)" :src="avatarUrl(row.avatar)" alt="" />
+                <template v-else>{{ (row.nickname || '?').charAt(0) }}</template>
+              </div>
               <div class="user-cell-text">
-                <span class="user-cell-name">{{ row.nickname || row.username }}</span>
-                <span class="user-cell-username">@{{ row.username }}</span>
+                <span class="user-cell-name">{{ row.nickname }}</span>
+                <span class="user-cell-username">ID {{ row.id }}</span>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="email" label="邮箱" min-width="160">
-          <template #default="{ row }">{{ row.email || '—' }}</template>
-        </el-table-column>
-        <el-table-column prop="messageCount" label="留言数" width="90" align="center" />
-        <el-table-column prop="createTime" label="注册时间" width="165" />
-        <el-table-column prop="lastLoginTime" label="最近登录" width="165">
+        <el-table-column prop="messageCount" label="留言" width="76" align="center" />
+        <el-table-column prop="loginCount" label="同步次数" width="90" align="center" />
+        <el-table-column prop="createTime" label="首次同步" width="160" />
+        <el-table-column prop="lastLoginTime" label="最近同步" width="160">
           <template #default="{ row }">{{ row.lastLoginTime || '—' }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column prop="lastLoginIp" label="最近 IP" width="128">
+          <template #default="{ row }">{{ row.lastLoginIp || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="设备" min-width="140" show-overflow-tooltip>
+          <template #default="{ row }">{{ deviceOf(row.lastLoginUa) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="88" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'normal' ? 'success' : 'danger'" size="small">
               {{ row.status === 'normal' ? '正常' : '已禁言' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="230" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button
               size="small"
@@ -59,12 +75,12 @@
             >
               {{ row.status === 'normal' ? '禁言' : '解禁' }}
             </el-button>
-            <el-button size="small" type="primary" text @click="openReset(row)">重置密码</el-button>
+            <el-button size="small" type="primary" text @click="openRename(row)">改名</el-button>
             <el-button size="small" type="danger" text @click="removeUser(row)">删除</el-button>
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="还没有注册用户" />
+          <el-empty description="还没有访客同步过身份" />
         </template>
       </el-table>
 
@@ -81,22 +97,21 @@
       </div>
     </el-card>
 
-    <!-- 重置密码弹窗 -->
-    <el-dialog v-model="resetDialog.show" title="重置用户密码" width="420px">
-      <p class="reset-tip">
-        将为用户 <b>@{{ resetDialog.user?.username }}</b>（{{ resetDialog.user?.nickname }}）设置新密码，
-        该用户的所有登录状态将立即失效。
+    <!-- 改名弹窗 -->
+    <el-dialog v-model="renameDialog.show" title="修改昵称" width="440px">
+      <p class="dialog-tip">
+        原昵称：<b>{{ renameDialog.user?.nickname }}</b><br />
+        改名后该身份的登录令牌会失效，需要用新昵称重新同步；历史留言保留（留言里存的是当时昵称快照）。
       </p>
       <el-input
-        v-model="resetDialog.password"
-        type="password"
-        placeholder="新密码（至少 6 位）"
-        show-password
-        maxlength="64"
+        v-model="renameDialog.nickname"
+        placeholder="新昵称（2-20 个字符）"
+        maxlength="20"
+        show-word-limit
       />
       <template #footer>
-        <el-button @click="resetDialog.show = false">取消</el-button>
-        <el-button type="primary" :loading="resetDialog.saving" @click="confirmReset">确认重置</el-button>
+        <el-button @click="renameDialog.show = false">取消</el-button>
+        <el-button type="primary" :loading="renameDialog.saving" @click="confirmRename">确认修改</el-button>
       </template>
     </el-dialog>
   </div>
@@ -105,7 +120,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { InfoFilled } from '@element-plus/icons-vue'
 import request from '../../utils/request'
+import { avatarUrl } from '../../utils/avatar'
 
 const users = ref([])
 const total = ref(0)
@@ -133,12 +150,28 @@ const loadUsers = async (page = 1) => {
   }
 }
 
+// 从 UA 粗略识别设备，便于核对同一昵称是否被多人使用
+const deviceOf = (ua) => {
+  if (!ua) return '—'
+  const s = ua.toLowerCase()
+  const os = s.includes('windows') ? 'Windows'
+    : s.includes('mac os') ? 'macOS'
+    : s.includes('android') ? 'Android'
+    : s.includes('iphone') || s.includes('ipad') ? 'iOS'
+    : s.includes('linux') ? 'Linux' : '未知系统'
+  const br = s.includes('edg/') ? 'Edge'
+    : s.includes('chrome') ? 'Chrome'
+    : s.includes('firefox') ? 'Firefox'
+    : s.includes('safari') ? 'Safari' : '其他浏览器'
+  return `${os} · ${br}`
+}
+
 const toggleBan = async (row) => {
   const ban = row.status === 'normal'
   try {
     if (ban) {
       await ElMessageBox.confirm(
-        `禁言后 @${row.username} 将无法登录和留言，确定继续？`,
+        `禁言后「${row.nickname}」将无法同步身份和留言，确定继续？`,
         '禁言确认',
         { confirmButtonText: '禁言', cancelButtonText: '取消', type: 'warning' }
       )
@@ -153,41 +186,42 @@ const toggleBan = async (row) => {
   } catch { /* 取消或失败 */ }
 }
 
-const resetDialog = reactive({ show: false, user: null, password: '', saving: false })
-const openReset = (row) => {
-  resetDialog.user = row
-  resetDialog.password = ''
-  resetDialog.show = true
+const renameDialog = reactive({ show: false, user: null, nickname: '', saving: false })
+
+const openRename = (row) => {
+  renameDialog.user = row
+  renameDialog.nickname = row.nickname
+  renameDialog.show = true
 }
-const confirmReset = async () => {
-  if (!resetDialog.password || resetDialog.password.length < 6) {
-    ElMessage.warning('新密码至少 6 位')
+
+const confirmRename = async () => {
+  const name = renameDialog.nickname.trim()
+  if (name.length < 2 || name.length > 20) {
+    ElMessage.warning('昵称需 2-20 个字符')
     return
   }
-  resetDialog.saving = true
+  renameDialog.saving = true
   try {
-    const res = await request.post('/webuser/resetPassword', {
-      id: resetDialog.user.id,
-      newPassword: resetDialog.password
-    })
+    const res = await request.post('/webuser/rename', { id: renameDialog.user.id, nickname: name })
     if (res.data.code === 200) {
-      ElMessage.success('已重置，请告知用户新密码')
-      resetDialog.show = false
+      ElMessage.success(res.data.message)
+      renameDialog.show = false
+      await loadUsers(pager.page)
     } else {
-      ElMessage.error(res.data.message || '重置失败')
+      ElMessage.error(res.data.message || '改名失败')
     }
   } catch {
-    ElMessage.error('重置失败')
+    ElMessage.error('改名失败')
   } finally {
-    resetDialog.saving = false
+    renameDialog.saving = false
   }
 }
 
 const removeUser = async (row) => {
   try {
     await ElMessageBox.confirm(
-      `删除后 @${row.username} 无法恢复；其 ${row.messageCount} 条留言会保留但转为匿名。确定删除？`,
-      '删除用户',
+      `删除后「${row.nickname}」无法恢复；其 ${row.messageCount} 条留言会保留但转为匿名。确定删除？`,
+      '删除身份',
       { confirmButtonText: '删除', cancelButtonText: '取消', type: 'error' }
     )
     const res = await request.delete(`/webuser/${row.id}`)
@@ -207,6 +241,20 @@ onMounted(() => loadUsers())
 .webuser-page { display: flex; flex-direction: column; gap: 16px; }
 .main-card { border-radius: 12px; }
 
+.intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f7f8fb;
+  color: #6b7488;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.intro b { color: #303133; }
+
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -220,22 +268,25 @@ onMounted(() => loadUsers())
 
 .user-cell { display: flex; align-items: center; gap: 10px; }
 .user-cell-avatar {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #fff;
+  overflow: hidden;
+  background: #eef1f7;
+  color: #6b7488;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 700;
   flex-shrink: 0;
 }
+.user-cell-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .user-cell-text { display: flex; flex-direction: column; }
 .user-cell-name { font-size: 0.9rem; font-weight: 600; color: #303133; }
-.user-cell-username { font-size: 0.75rem; color: #909399; }
+.user-cell-username { font-size: 0.72rem; color: #909399; }
 
 .pager { display: flex; justify-content: flex-end; margin-top: 16px; }
-.reset-tip { margin: 0 0 14px; font-size: 0.88rem; color: #555; line-height: 1.7; }
+.dialog-tip { margin: 0 0 14px; font-size: 0.85rem; color: #606266; line-height: 1.8; }
+.dialog-tip b { color: #303133; }
 </style>

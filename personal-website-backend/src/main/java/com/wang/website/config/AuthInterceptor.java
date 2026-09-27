@@ -48,20 +48,18 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/resume/entries",
             "/api/statistic/today",
             "/api/statistic/total",
-            "/api/setting/all",
-            "/api/webuser/captcha"
+            "/api/setting/all"
     );
 
-    /** 游客可写的精确路径（登录/注册、统计上报、访客记录） */
+    /** 游客可写的精确路径（身份同步、管理员登录、统计上报、访客记录） */
     private static final Set<String> PUBLIC_WRITE = Set.of(
             "/api/user/login",
-            "/api/webuser/register",
-            "/api/webuser/login",
+            "/api/webuser/sync",
             "/api/statistic/visit",
             "/api/visitor/record"
     );
 
-    /** 需要登录（注册用户或管理员皆可）才能写的精确路径 */
+    /** 需要登录（访客身份或管理员皆可）才能写的精确路径 */
     private static final Set<String> USER_AUTH_WRITE = Set.of(
             "/api/message/add"
     );

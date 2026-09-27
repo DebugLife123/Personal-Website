@@ -7,8 +7,15 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    meta: { hideNav: true },
+    meta: { hideNav: true, publicEntry: true },
     component: () => import('../views/Login.vue')
+  },
+  {
+    // 管理员专用入口，与访客入口分开
+    path: '/admin/login',
+    name: 'AdminLogin',
+    meta: { hideNav: true, publicEntry: true },
+    component: () => import('../views/admin/AdminLogin.vue')
   },
   {
     path: '/',
@@ -71,19 +78,19 @@ router.beforeEach(async (to, from, next) => {
   // 校验登录态（管理员身份会回源验证 Token）
   await checkAuth()
 
-  // 登录页放行
-  if (to.path === '/login') {
+  // 访客入口 / 管理员登录页：直接放行
+  if (to.meta.publicEntry) {
     next()
     return
   }
 
-  // 需要管理员权限但当前不是管理员
+  // 需要管理员权限但当前不是管理员：进管理员专用入口
   if (to.meta.requiresAdmin && !isAdmin.value) {
-    next('/')
+    next('/admin/login')
     return
   }
 
-  // 未登录跳转登录页
+  // 未登录跳转访客入口
   if (!isLoggedIn.value) {
     next('/login')
   } else {

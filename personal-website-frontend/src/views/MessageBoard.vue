@@ -16,8 +16,7 @@ const myName = computed(() => isAdmin.value ? '管理员' : (currentUser.value?.
 const myAvatar = computed(() => isAdmin.value ? '' : avatarUrl(currentUser.value?.avatar))
 const myInitial = computed(() => (myName.value || 'U').charAt(0).toUpperCase())
 
-const goLogin = (tab) => {
-  sessionStorage.setItem('loginTab', tab) // 'login' | 'register'
+const goLogin = () => {
   router.push('/login')
 }
 
@@ -277,14 +276,13 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- 未登录：引导注册 -->
+              <!-- 未登录：引导同步身份 -->
               <div class="post-card-body login-gate" v-else>
                 <div class="gate-mark"><el-icon :size="32"><ChatDotSquare /></el-icon></div>
-                <p class="gate-title">登录后才能留言</p>
-                <p class="gate-sub">注册只需一个用户名和密码，留言即刻公开，不用等审核</p>
+                <p class="gate-title">留个名字就能留言</p>
+                <p class="gate-sub">选个形象、填个昵称即可，不需要注册和密码，留言立刻公开</p>
                 <div class="gate-actions">
-                  <button class="post-btn" @click="goLogin('register')">立即注册</button>
-                  <button class="ghost-btn" @click="goLogin('login')">已有账号？登录</button>
+                  <button class="post-btn" @click="goLogin()">同步身份并留言</button>
                 </div>
               </div>
             </div>

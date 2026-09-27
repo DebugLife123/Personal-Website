@@ -71,162 +71,65 @@
 
       <!-- 右：表单区 -->
       <div class="shell-form">
-        <transition name="fade-swap" mode="out-in">
-          <!-- ===================== 登录 ===================== -->
-          <div class="form-pane" v-if="page === 'login'" key="login">
-            <h1 class="form-title">欢迎来访！</h1>
-            <p class="form-sub">选择你的身份并输入用户名</p>
+        <div class="form-pane">
+          <h1 class="form-title">欢迎来访！</h1>
+          <p class="form-sub">选个形象，留个名字，就可以进来了</p>
 
-            <!-- 身份选择 -->
-            <div class="pick-row">
-              <button
-                v-for="opt in identityOptions"
-                :key="opt.value"
-                class="pick-item"
-                :class="{ active: loginAs === opt.value }"
-                @click="switchLoginAs(opt.value)"
-              >
-                <img :src="opt.url" :alt="opt.label" />
-                <span>{{ opt.label }}</span>
-              </button>
-            </div>
-
-            <label class="field-label">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="8" r="3.4" /><path d="M5 20c0-3.3 3.1-5.4 7-5.4s7 2.1 7 5.4" />
-              </svg>
-              用户名
-            </label>
-            <input
-              ref="usernameRef"
-              v-model="form.username"
-              class="field-input"
-              type="text"
-              placeholder="请输入用户名"
-              autocomplete="off"
-              @keyup.enter="focusPassword"
-            />
-
-            <label class="field-label">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="4" y="10" width="16" height="10" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3" />
-              </svg>
-              密码
-            </label>
-            <input
-              ref="passwordRef"
-              v-model="form.password"
-              class="field-input"
-              type="password"
-              placeholder="请输入密码"
-              autocomplete="off"
-              @keyup.enter="handleLogin"
-            />
-
-            <p v-if="errorMsg" class="error-text">{{ errorMsg }}</p>
-
-            <button class="cta-btn" :class="{ loading: submitting }" :disabled="submitting" @click="handleLogin">
-              <span v-if="submitting" class="btn-spinner"></span>
-              <template v-else>
-                <span>同步身份并登录</span>
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 12h13M13 6l6 6-6 6" />
-                </svg>
-              </template>
+          <!-- 形象选择 -->
+          <div class="pick-row">
+            <button
+              v-for="a in PRESET_AVATARS"
+              :key="a.key"
+              class="pick-item"
+              :class="{ active: avatar === a.key }"
+              title="选择这个形象"
+              @click="avatar = a.key"
+            >
+              <img :src="a.url" alt="形象" />
             </button>
-
-            <p class="form-foot">
-              还没有账号？<button class="link-btn" @click="switchPage('register')">立即注册</button>
-            </p>
+            <button class="pick-item pick-add" title="随机换一个" @click="shuffleAvatar">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <path d="M6 12h12M12 6v12" />
+              </svg>
+            </button>
           </div>
 
-          <!-- ===================== 注册 ===================== -->
-          <div class="form-pane" v-else key="register">
-            <h1 class="form-title">创建账号</h1>
-            <p class="form-sub">选个形象，起个名字，即刻留言</p>
+          <label class="field-label">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="3.4" /><path d="M5 20c0-3.3 3.1-5.4 7-5.4s7 2.1 7 5.4" />
+            </svg>
+            昵称
+          </label>
+          <input
+            ref="nicknameRef"
+            v-model="nickname"
+            class="field-input"
+            type="text"
+            placeholder="2-20 个字符，中英文都行"
+            autocomplete="off"
+            maxlength="20"
+            @keyup.enter="handleSync"
+          />
+          <p class="field-hint">昵称就是你的身份标识，下次填同一个昵称即可继续</p>
 
-            <!-- 形象选择 -->
-            <div class="pick-row">
-              <button
-                v-for="a in PRESET_AVATARS"
-                :key="a.key"
-                class="pick-item"
-                :class="{ active: reg.avatar === a.key }"
-                @click="reg.avatar = a.key"
-              >
-                <img :src="a.url" alt="形象" />
-              </button>
-              <button class="pick-item pick-add" title="随机换一组" @click="shuffleAvatars">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-                  <path d="M6 12h12M12 6v12" />
-                </svg>
-              </button>
-            </div>
+          <p v-if="errorMsg" class="error-text">{{ errorMsg }}</p>
 
-            <label class="field-label">用户名</label>
-            <input
-              v-model="reg.username"
-              class="field-input"
-              type="text"
-              placeholder="3-20 位字母、数字或下划线"
-              autocomplete="off"
-              maxlength="20"
-            />
+          <button class="cta-btn" :class="{ loading: submitting }" :disabled="submitting" @click="handleSync">
+            <span v-if="submitting" class="btn-spinner"></span>
+            <template v-else>
+              <span>同步身份并登录</span>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h13M13 6l6 6-6 6" />
+              </svg>
+            </template>
+          </button>
 
-            <div class="field-grid">
-              <div>
-                <label class="field-label">昵称（可选）</label>
-                <input v-model="reg.nickname" class="field-input" type="text" placeholder="默认同用户名" autocomplete="off" maxlength="20" />
-              </div>
-              <div>
-                <label class="field-label">邮箱（可选）</label>
-                <input v-model="reg.email" class="field-input" type="email" placeholder="用于找回账号" autocomplete="off" />
-              </div>
-            </div>
-
-            <div class="field-grid">
-              <div>
-                <label class="field-label">密码</label>
-                <input v-model="reg.password" class="field-input" type="password" placeholder="至少 6 位" autocomplete="new-password" maxlength="64" />
-              </div>
-              <div>
-                <label class="field-label">确认密码</label>
-                <input v-model="reg.password2" class="field-input" type="password" placeholder="再输入一次" autocomplete="new-password" maxlength="64" @keyup.enter="handleRegister" />
-              </div>
-            </div>
-
-            <label class="field-label">安全验证</label>
-            <div class="captcha-row">
-              <div class="captcha-question" @click="refreshCaptcha" title="点击换一题">
-                <span>{{ captchaQuestion || '点击获取题目' }}</span>
-              </div>
-              <input
-                v-model="reg.captchaAnswer"
-                class="field-input"
-                type="text"
-                placeholder="填写答案"
-                autocomplete="off"
-                @keyup.enter="handleRegister"
-              />
-            </div>
-
-            <p v-if="errorMsg" class="error-text">{{ errorMsg }}</p>
-
-            <button class="cta-btn" :class="{ loading: submitting }" :disabled="submitting" @click="handleRegister">
-              <span v-if="submitting" class="btn-spinner"></span>
-              <template v-else>
-                <span>创建并登录</span>
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 12h13M13 6l6 6-6 6" />
-                </svg>
-              </template>
-            </button>
-
-            <p class="form-foot">
-              已有账号？<button class="link-btn" @click="switchPage('login')">返回登录</button>
-            </p>
-          </div>
-        </transition>
+          <p class="form-foot">
+            <button class="link-btn" @click="enterAsGuest">先随便逛逛（游客）</button>
+            <span class="foot-sep">·</span>
+            <button class="link-btn" @click="goAdminLogin">管理员入口</button>
+          </p>
+        </div>
 
         <p class="shell-foot">yu翔 · 个人品牌网站</p>
       </div>
@@ -236,34 +139,27 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import request from '../utils/request'
 import { PRESET_AVATARS } from '../utils/avatar'
-import { adminLogin, userLogin, userRegister, guestLogin } from '../utils/auth'
+import { syncIdentity, guestLogin } from '../utils/auth'
 import { getTheme, setTheme } from '../utils/theme'
 
 const router = useRouter()
-const page = ref('login')
-const loginAs = ref('user')
 const submitting = ref(false)
 const errorMsg = ref('')
-const usernameRef = ref(null)
-const passwordRef = ref(null)
+const nicknameRef = ref(null)
 
-const form = reactive({ username: '', password: '' })
-const reg = reactive({
-  username: '', nickname: '', password: '', password2: '',
-  email: '', captchaId: '', captchaAnswer: '',
-  avatar: PRESET_AVATARS[0].key
-})
-const captchaQuestion = ref('')
+// 极简身份：一个昵称 + 一个形象
+const nickname = ref('')
+const avatar = ref(PRESET_AVATARS[0].key)
 
-// 登录身份选项（沿用既有「用户 / 管理员」双身份逻辑）
-const identityOptions = computed(() => [
-  { value: 'user', label: '用户', url: PRESET_AVATARS[4].url },
-  { value: 'admin', label: '管理员', url: PRESET_AVATARS[3].url },
-])
+const shuffleAvatar = () => {
+  const pool = PRESET_AVATARS.filter((a) => a.key !== avatar.value)
+  avatar.value = pool[Math.floor(Math.random() * pool.length)].key
+}
+
+const goAdminLogin = () => { router.push('/admin/login') }
 
 // ==================== 背景图与主题 ====================
 // 替换背景：把图片放到 personal-website-frontend/public/images/login-bg.jpg
@@ -479,100 +375,29 @@ onBeforeUnmount(() => {
 })
 
 // ==================== 业务逻辑 ====================
-const shuffleAvatars = () => {
-  const pool = PRESET_AVATARS.filter((a) => a.key !== reg.avatar)
-  reg.avatar = pool[Math.floor(Math.random() * pool.length)].key
-}
-
-const switchPage = (target) => {
-  page.value = target
+// 身份同步：昵称即身份，无需密码/验证码；昵称已存在则同步进同一身份
+const handleSync = async () => {
   errorMsg.value = ''
-  if (target === 'login') nextTick(() => { usernameRef.value?.focus() })
-  else { reg.captchaAnswer = ''; refreshCaptcha() }
-}
-
-const switchLoginAs = (target) => {
-  loginAs.value = target
-  errorMsg.value = ''
-  nextTick(() => { usernameRef.value?.focus() })
-}
-
-const focusPassword = () => { passwordRef.value?.focus() }
-
-const handleLogin = async () => {
-  if (!form.username.trim() || !form.password.trim()) {
-    errorMsg.value = '请输入用户名和密码'
-    return
-  }
-  errorMsg.value = ''
-  submitting.value = true
-  try {
-    const fn = loginAs.value === 'admin' ? adminLogin : userLogin
-    const result = await fn(form.username.trim(), form.password)
-    if (result.success) {
-      router.push(loginAs.value === 'admin' ? '/admin' : '/')
-    } else {
-      errorMsg.value = result.message
-    }
-  } finally { submitting.value = false }
-}
-
-const refreshCaptcha = async () => {
-  reg.captchaAnswer = ''
-  try {
-    const res = await request.get('/webuser/captcha')
-    if (res.data.code === 200) {
-      reg.captchaId = res.data.data.captchaId
-      captchaQuestion.value = res.data.data.question
-    } else {
-      captchaQuestion.value = ''
-      errorMsg.value = res.data.message || '获取验证码失败'
-    }
-  } catch {
-    captchaQuestion.value = ''
-    errorMsg.value = '获取验证码失败，请重试'
-  }
-}
-
-const handleRegister = async () => {
-  errorMsg.value = ''
-  const u = reg.username.trim()
-  if (!u || u.length < 3 || u.length > 20) { errorMsg.value = '用户名需 3-20 位'; return }
-  if (!/^[a-zA-Z0-9_]+$/.test(u)) { errorMsg.value = '用户名仅限字母、数字和下划线'; return }
-  if (!reg.password || reg.password.length < 6) { errorMsg.value = '密码至少 6 位'; return }
-  if (reg.password !== reg.password2) { errorMsg.value = '两次密码输入不一致'; return }
-  if (!reg.captchaId) { errorMsg.value = '请先点击验证码题目获取'; return }
-  if (!reg.captchaAnswer.trim()) { errorMsg.value = '请输入验证码答案'; return }
+  const name = nickname.value.trim().replace(/\s+/g, ' ')
+  if (!name) { errorMsg.value = '请填写昵称'; return }
+  if (name.length < 2) { errorMsg.value = '昵称至少 2 个字符'; return }
+  if (name.length > 20) { errorMsg.value = '昵称最长 20 个字符'; return }
 
   submitting.value = true
   try {
-    const result = await userRegister({
-      username: u,
-      password: reg.password,
-      nickname: reg.nickname.trim(),
-      email: reg.email.trim(),
-      avatar: reg.avatar,
-      captchaId: reg.captchaId,
-      captchaAnswer: reg.captchaAnswer.trim()
-    })
+    const result = await syncIdentity(name, avatar.value)
     if (result.success) {
       router.push('/')
     } else {
       errorMsg.value = result.message
-      refreshCaptcha() // 无论验证码对错，都让题目刷新
     }
   } finally { submitting.value = false }
 }
 
 const enterAsGuest = () => { guestLogin(); router.push('/') }
 
-// 外部页面（如留言板）跳转时预选 Tab
-const presetTab = sessionStorage.getItem('loginTab')
-if (presetTab === 'register' || presetTab === 'login') {
-  page.value = presetTab
-  sessionStorage.removeItem('loginTab')
-  if (presetTab === 'register') refreshCaptcha()
-}
+// 从留言板等页面跳转过来时自动聚焦昵称输入
+onMounted(() => { nextTick(() => nicknameRef.value?.focus()) })
 </script>
 
 <style scoped>
@@ -916,16 +741,14 @@ if (presetTab === 'register' || presetTab === 'login') {
   letter-spacing: 0.3px;
 }
 
-/* 形象 / 身份选择行 */
+/* 形象选择行 */
 .pick-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 26px;
   flex-wrap: wrap;
 }
-
-.pick-row:has(.pick-item span) { gap: 16px; }
 
 .pick-item {
   position: relative;
@@ -936,7 +759,6 @@ if (presetTab === 'register' || presetTab === 'login') {
   border: 1px solid #e6e9f0;
   background: #fff;
   cursor: pointer;
-  /* 注意：不能用 overflow:hidden，否则下方文字标签会被裁掉 */
   overflow: visible;
   transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s, border-color 0.22s;
 }
@@ -958,23 +780,6 @@ if (presetTab === 'register' || presetTab === 'login') {
   border-color: #12192b;
   box-shadow: 0 0 0 2px #12192b, 0 8px 18px -8px rgba(16, 24, 40, 0.35);
 }
-
-/* 登录身份项带文字 */
-.pick-row .pick-item span {
-  position: absolute;
-  bottom: -21px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.72rem;
-  color: #98a1b3;
-  white-space: nowrap;
-}
-
-.pick-row:has(.pick-item span) {
-  margin-bottom: 34px;
-}
-
-.pick-item.active span { color: #12192b; font-weight: 600; }
 
 .pick-add {
   border-style: dashed;
@@ -1021,44 +826,13 @@ if (presetTab === 'register' || presetTab === 'login') {
   box-shadow: 0 0 0 3px rgba(18, 25, 43, 0.08);
 }
 
-.field-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+/* 字段下方说明 */
+.field-hint {
+  margin: -8px 0 4px;
+  font-size: 0.72rem;
+  color: #b6bccb;
+  letter-spacing: 0.3px;
 }
-
-.field-grid .field-input { margin-bottom: 16px; }
-
-/* 验证码 */
-.captcha-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-
-.captcha-question {
-  flex-shrink: 0;
-  min-width: 116px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  border-radius: 11px;
-  background: #f4f5f8;
-  border: 1px dashed #d6dbe6;
-  color: #12192b;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.captcha-question:hover { background: #eef1f7; border-color: #c3cad9; }
-
-.captcha-row .field-input { margin-bottom: 0; }
 
 /* 错误提示 */
 .error-text {
@@ -1139,6 +913,8 @@ if (presetTab === 'register' || presetTab === 'login') {
 
 .link-btn:hover { text-decoration-color: #12192b; }
 
+.foot-sep { margin: 0 8px; color: #dfe3ea; }
+
 .shell-foot {
   position: absolute;
   bottom: 18px;
@@ -1150,13 +926,6 @@ if (presetTab === 'register' || presetTab === 'login') {
   letter-spacing: 1.6px;
   color: #c3cad9;
 }
-
-/* 面板切换动画 */
-.fade-swap-enter-active, .fade-swap-leave-active {
-  transition: opacity 0.22s ease, transform 0.22s ease;
-}
-.fade-swap-enter-from { opacity: 0; transform: translateY(8px); }
-.fade-swap-leave-to { opacity: 0; transform: translateY(-8px); }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 900px) {

@@ -45,10 +45,10 @@ const adminLogin = async (username, password) => {
   }
 }
 
-// 用户登录
-const userLogin = async (username, password) => {
+// 身份同步并登录：昵称即身份，无需密码/验证码（昵称已存在则同步该身份）
+const syncIdentity = async (nickname, avatar) => {
   try {
-    const res = await request.post('/webuser/login', { username, password })
+    const res = await request.post('/webuser/sync', { nickname, avatar })
     if (res.data.code === 200) {
       const data = res.data.data
       const p = data.profile || {}
@@ -56,32 +56,11 @@ const userLogin = async (username, password) => {
       isLoggedIn.value = true
       adminVerified.value = false
       verifyPromise = null
-      currentUser.value = { id: p.id, username: p.username, nickname: p.nickname, avatar: p.avatar, email: p.email }
-      localStorage.setItem('auth', JSON.stringify({ type: 'user', token: data.token, username: p.username }))
-      return { success: true }
+      currentUser.value = { id: p.id, nickname: p.nickname, avatar: p.avatar }
+      localStorage.setItem('auth', JSON.stringify({ type: 'user', token: data.token, nickname: p.nickname }))
+      return { success: true, isNew: !!data.isNew, profile: p }
     }
-    return { success: false, message: res.data.message || '登录失败' }
-  } catch {
-    return { success: false, message: '网络错误，请重试' }
-  }
-}
-
-// 用户注册（成功后即登录）
-const userRegister = async (payload) => {
-  try {
-    const res = await request.post('/webuser/register', payload)
-    if (res.data.code === 200) {
-      const data = res.data.data
-      const p = data.profile || {}
-      authType.value = 'user'
-      isLoggedIn.value = true
-      adminVerified.value = false
-      verifyPromise = null
-      currentUser.value = { id: p.id, username: p.username, nickname: p.nickname, avatar: p.avatar, email: p.email }
-      localStorage.setItem('auth', JSON.stringify({ type: 'user', token: data.token, username: p.username }))
-      return { success: true }
-    }
-    return { success: false, message: res.data.message || '注册失败' }
+    return { success: false, message: res.data.message || '身份同步失败' }
   } catch {
     return { success: false, message: '网络错误，请重试' }
   }
@@ -127,13 +106,13 @@ const verifyAdminToken = async () => {
   return verifyPromise
 }
 
-// 回源校验用户 Token（结论与管理员一致，但 endpoint 不同）
+// 回源校验访客身份 Token（结论与管理员一致，但 endpoint 不同）
 const verifyUserToken = async () => {
   try {
     const res = await request.get('/webuser/profile')
     if (res.data.code === 200) {
       const p = res.data.data || {}
-      currentUser.value = { id: p.id, username: p.username, nickname: p.nickname, avatar: p.avatar, email: p.email }
+      currentUser.value = { id: p.id, nickname: p.nickname, avatar: p.avatar }
       return true
     }
     _clearAuth()
@@ -176,5 +155,5 @@ const checkAuth = async () => {
 
 export {
   authType, isLoggedIn, isAdmin, isUser, currentUser,
-  adminLogin, userLogin, userRegister, guestLogin, logout, checkAuth
+  adminLogin, syncIdentity, guestLogin, logout, checkAuth
 }

@@ -21,28 +21,31 @@ CREATE TABLE IF NOT EXISTS admin_user (
 INSERT IGNORE INTO admin_user (username, password)
 VALUES ('admin', '$2a$10$.KR4H4sZKkRNRQAMOPe22eMe0pRXkHzWQUg3Cfx4K2be8wl5/l0VK');
 
--- 0.1 站点注册用户表（与管理员账号独立）
+-- 0.1 站点访客身份表（与管理员账号独立；昵称即唯一标识，无密码）
 CREATE TABLE IF NOT EXISTS website_user (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL COMMENT '登录用户名',
-    password VARCHAR(100) NOT NULL COMMENT 'BCrypt 加密后的密码',
-    nickname VARCHAR(50) DEFAULT '' COMMENT '昵称',
-    email VARCHAR(100) DEFAULT '' COMMENT '邮箱（可选）',
-    avatar VARCHAR(500) DEFAULT '' COMMENT '头像',
+    username VARCHAR(50) NOT NULL COMMENT '身份标识（与 nickname 同值，兼容历史列）',
+    password VARCHAR(100) NOT NULL DEFAULT '' COMMENT '保留字段：现行身份同步登录不校验密码',
+    nickname VARCHAR(50) NOT NULL COMMENT '昵称，登录身份唯一标识',
+    email VARCHAR(100) DEFAULT '' COMMENT '保留字段',
+    avatar VARCHAR(500) DEFAULT '' COMMENT '形象（preset:xxx 或图片地址）',
     status VARCHAR(20) DEFAULT 'normal' COMMENT 'normal/banned',
-    last_login_time DATETIME COMMENT '最近登录时间',
-    last_login_ip VARCHAR(50) DEFAULT '' COMMENT '最近登录IP',
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
-    UNIQUE KEY uk_username (username)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站点注册用户表';
+    last_login_time DATETIME COMMENT '最近同步时间',
+    last_login_ip VARCHAR(50) DEFAULT '' COMMENT '最近同步IP',
+    last_login_ua VARCHAR(255) DEFAULT '' COMMENT '最近同步设备',
+    login_count INT DEFAULT 0 COMMENT '累计同步次数',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '首次创建时间',
+    UNIQUE KEY uk_username (username),
+    UNIQUE KEY uk_nickname (nickname)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站点访客身份表';
 
--- 0.2 登录令牌表：管理员与注册用户共用，DB 持久化（重启不掉线）
+-- 0.2 登录令牌表：管理员与访客身份共用，DB 持久化（重启不掉线）
 CREATE TABLE IF NOT EXISTS auth_token (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     token VARCHAR(64) NOT NULL COMMENT '令牌',
     principal_type VARCHAR(10) NOT NULL COMMENT 'admin/user',
     principal_id INT NOT NULL COMMENT '主体ID（admin_user.id 或 website_user.id）',
-    principal_name VARCHAR(50) DEFAULT '' COMMENT '主体用户名',
+    principal_name VARCHAR(50) DEFAULT '' COMMENT '主体名称',
     expire_at DATETIME NOT NULL COMMENT '过期时间',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_token (token),
@@ -67,9 +70,51 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @col := (SELECT COUNT(*) FROM information_schema.COLUMNS
              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'message' AND COLUMN_NAME = 'user_id');
 SET @sql := IF(@col = 0,
-    'ALTER TABLE message ADD COLUMN user_id INT DEFAULT NULL COMMENT ''留言所属注册用户''',
+    'ALTER TABLE message ADD COLUMN user_id INT DEFAULT NULL COMMENT ''留言所属访客身份''',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 0.4 存量库迁移：昵称作为唯一身份标识
+-- 补齐空昵称（用用户名兜底）并让 username 与 nickname 同值
+UPDATE website_user SET nickname = username WHERE nickname IS NULL OR nickname = '';
+UPDATE website_user SET username = nickname WHERE username <> nickname;
+-- 压缩昵称首尾与中间多余空格，避免「张 三」和「张  三」被当成两个身份
+UPDATE website_user SET nickname = TRIM(REGEXP_REPLACE(nickname, '[[:space:]]+', ' ')) WHERE nickname <> TRIM(REGEXP_REPLACE(nickname, '[[:space:]]+', ' '));
+-- 重复昵称去重：保留 id 最小的一条，其余追加 -id 后缀（保证唯一索引可建立）
+UPDATE website_user u
+  JOIN (SELECT nickname FROM website_user GROUP BY nickname HAVING COUNT(*) > 1) d
+    ON u.nickname = d.nickname
+  JOIN (SELECT nickname, MIN(id) AS keep_id FROM website_user GROUP BY nickname) k
+    ON k.nickname = u.nickname
+SET u.nickname = CONCAT(u.nickname, '-', u.id), u.username = CONCAT(u.nickname, '-', u.id)
+WHERE u.id <> k.keep_id;
+
+SET @idx := (SELECT COUNT(*) FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'website_user' AND INDEX_NAME = 'uk_nickname');
+SET @sql := IF(@idx = 0, 'ALTER TABLE website_user ADD UNIQUE KEY uk_nickname (nickname)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 补 login_count（存量行按 1 计）
+SET @col := (SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'website_user' AND COLUMN_NAME = 'login_count');
+SET @sql := IF(@col = 0,
+    'ALTER TABLE website_user ADD COLUMN login_count INT DEFAULT 0 COMMENT ''累计同步次数''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+UPDATE website_user SET login_count = 1 WHERE login_count IS NULL OR login_count = 0;
+
+-- 补 last_login_ua（记录同步设备，便于后台核对身份）
+SET @col := (SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'website_user' AND COLUMN_NAME = 'last_login_ua');
+SET @sql := IF(@col = 0,
+    'ALTER TABLE website_user ADD COLUMN last_login_ua VARCHAR(255) DEFAULT '''' COMMENT ''最近同步设备''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 密码列保留但不再校验（历史数据不丢，新数据留空）
+ALTER TABLE website_user MODIFY COLUMN password VARCHAR(100) NOT NULL DEFAULT ''
+    COMMENT '保留字段：现行身份同步登录不校验密码';
+
 
 -- 1. 文章表
 CREATE TABLE IF NOT EXISTS article (
