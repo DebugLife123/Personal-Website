@@ -17,10 +17,10 @@ import java.util.Set;
  *
  * 身份模型：
  *   - 请求携带有效 Token 时，解析出 admin / user 两类身份写入 request 属性：
- *     adminUser(管理员用户名)、authUserId/authUserName(注册用户)
+ *     adminUser(管理员账号)、authUserId/authUserName(访客身份)
  *   - 默认规则：/api/** 需要有效管理员 Token；
- *     PUBLIC_* 中的路径对游客开放；
- *     USER_AUTH_WRITE 中的路径仅要求「注册用户或管理员已登录」。
+ *     PUBLIC_* 中的路径无需登录即可访问（入口页、公开内容、统计上报等）；
+ *     USER_AUTH_WRITE 中的路径要求「访客身份或管理员已登录」。
  */
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
@@ -30,7 +30,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Autowired
     private TokenService tokenService;
 
-    /** 游客可读的精确路径 */
+    /** 无需登录即可读取的精确路径（公开内容） */
     private static final Set<String> PUBLIC_GET = Set.of(
             "/api/article/page",
             "/api/article/get",
@@ -51,7 +51,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/setting/all"
     );
 
-    /** 游客可写的精确路径（身份同步、管理员登录、统计上报、访客记录） */
+    /** 无需登录即可写入的精确路径（身份同步、管理员登录、统计上报、访客记录） */
     private static final Set<String> PUBLIC_WRITE = Set.of(
             "/api/user/login",
             "/api/webuser/sync",
@@ -69,7 +69,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/message/mine/"
     );
 
-    /** 游客可写的前缀路径 */
+    /** 无需登录即可写入的前缀路径（点赞） */
     private static final Set<String> PUBLIC_WRITE_PREFIX = Set.of(
             "/api/message/like/",
             "/api/message/unlike/"
@@ -104,7 +104,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         String path = request.getRequestURI();
 
-        // 注册用户 Token：放行自身资料接口与「登录可写」清单
+        // 访客身份 Token：放行自身资料接口与「登录可写」清单
         if (request.getAttribute("authUserId") != null) {
             if (path.startsWith("/api/webuser/") || USER_AUTH_WRITE.contains(path)) {
                 return true;
@@ -116,7 +116,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
         }
 
-        // 游客白名单
+        // 公开白名单
         if (isPublic(request.getMethod(), path)) {
             return true;
         }

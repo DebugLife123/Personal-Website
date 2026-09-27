@@ -21,15 +21,15 @@ request.interceptors.request.use((config) => {
 }, (error) => Promise.reject(error))
 
 // 响应拦截：401 处理——
-// 管理后台：清除登录态并跳回登录页（需要管理员身份才能看）；
-// 游客区：不打扰浏览，清掉失效令牌由调用方自行决定提示。
+// 后台区域：清掉登录态并跳回管理入口；
+// 前台：交给路由守卫处理（身份失效会被送回访客入口），这里只清令牌不打断请求。
 request.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
             if (location.pathname.startsWith('/admin')) {
                 localStorage.removeItem('auth')
-                location.href = '/login'
+                location.href = '/admin/login'
             }
         }
         return Promise.reject(error)

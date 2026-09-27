@@ -10,7 +10,7 @@ import { avatarUrl } from '../utils/avatar'
 
 const router = useRouter()
 
-// 只有注册用户/管理员能留言；游客仅可浏览
+// 只有访客身份/管理员能留言（页面本身也要求已登录）
 const canPost = computed(() => isAdmin.value || isUser.value)
 const myName = computed(() => isAdmin.value ? '管理员' : (currentUser.value?.nickname || currentUser.value?.username || ''))
 const myAvatar = computed(() => isAdmin.value ? '' : avatarUrl(currentUser.value?.avatar))
@@ -276,13 +276,13 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- 未登录：引导同步身份 -->
+              <!-- 身份失效兜底：重新同步后即可留言 -->
               <div class="post-card-body login-gate" v-else>
                 <div class="gate-mark"><el-icon :size="32"><ChatDotSquare /></el-icon></div>
-                <p class="gate-title">留个名字就能留言</p>
-                <p class="gate-sub">选个形象、填个昵称即可，不需要注册和密码，留言立刻公开</p>
+                <p class="gate-title">身份已失效</p>
+                <p class="gate-sub">重新填一次昵称即可继续留言，你之前的留言会保留</p>
                 <div class="gate-actions">
-                  <button class="post-btn" @click="goLogin()">同步身份并留言</button>
+                  <button class="post-btn" @click="goLogin()">重新同步身份</button>
                 </div>
               </div>
             </div>

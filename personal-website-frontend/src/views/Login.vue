@@ -28,12 +28,6 @@
           <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
         </svg>
       </button>
-      <button class="tool-btn" title="以游客身份浏览" @click="enterAsGuest">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="3.4" />
-          <path d="M5 20c0-3.3 3.1-5.4 7-5.4s7 2.1 7 5.4" />
-        </svg>
-      </button>
     </div>
 
     <!-- ③ 登录卡片（从天而降后落定） -->
@@ -125,8 +119,6 @@
           </button>
 
           <p class="form-foot">
-            <button class="link-btn" @click="enterAsGuest">先随便逛逛（游客）</button>
-            <span class="foot-sep">·</span>
             <button class="link-btn" @click="goAdminLogin">管理员入口</button>
           </p>
         </div>
@@ -142,7 +134,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { PRESET_AVATARS } from '../utils/avatar'
-import { syncIdentity, guestLogin } from '../utils/auth'
+import { syncIdentity } from '../utils/auth'
 import { getTheme, setTheme } from '../utils/theme'
 
 const router = useRouter()
@@ -393,8 +385,6 @@ const handleSync = async () => {
     }
   } finally { submitting.value = false }
 }
-
-const enterAsGuest = () => { guestLogin(); router.push('/') }
 
 // 从留言板等页面跳转过来时自动聚焦昵称输入
 onMounted(() => { nextTick(() => nicknameRef.value?.focus()) })
@@ -912,8 +902,6 @@ onMounted(() => { nextTick(() => nicknameRef.value?.focus()) })
 }
 
 .link-btn:hover { text-decoration-color: #12192b; }
-
-.foot-sep { margin: 0 8px; color: #dfe3ea; }
 
 .shell-foot {
   position: absolute;

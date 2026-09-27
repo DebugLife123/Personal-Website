@@ -1,10 +1,10 @@
 import { ref, computed } from 'vue'
 import request from './request'
 
-// 身份类型：guest（未登录浏览）/ user（注册用户）/ admin（管理员）
-const authType = ref('guest')       // 'guest' | 'user' | 'admin'
+// 身份类型：none（未登录，会被守卫送到入口页）/ user（访客身份）/ admin（管理员）
+const authType = ref('none')        // 'none' | 'user' | 'admin'
 const isLoggedIn = ref(false)       // 是否已登录（user 或 admin）
-const currentUser = ref(null)       // { username, nickname?, avatar?, id? }
+const currentUser = ref(null)       // { id?, nickname?, avatar? }
 
 // 管理员身份是否已通过服务端校验（防止 localStorage 伪造）
 // 必须是响应式 ref：isAdmin 是 computed，若用普通变量，
@@ -17,7 +17,7 @@ const isAdmin = computed(() => authType.value === 'admin' && adminVerified.value
 const isUser  = computed(() => authType.value === 'user')
 
 const _clearAuth = () => {
-  authType.value = 'guest'
+  authType.value = 'none'
   isLoggedIn.value = false
   currentUser.value = null
   adminVerified.value = false
@@ -66,13 +66,7 @@ const syncIdentity = async (nickname, avatar) => {
   }
 }
 
-// 游客进入（只读浏览）
-const guestLogin = () => {
-  _clearAuth()
-  localStorage.setItem('auth', JSON.stringify({ type: 'guest' }))
-}
-
-// 退出登录：吊销对应令牌
+// 退出登录：吊销对应令牌，回到未登录状态（由守卫送回入口页）
 const logout = () => {
   const t = authType.value
   try {
@@ -80,7 +74,6 @@ const logout = () => {
     else if (t === 'user') request.post('/webuser/logout').catch(() => {})
   } catch { /* ignore */ }
   _clearAuth()
-  localStorage.setItem('auth', JSON.stringify({ type: 'guest' }))
 }
 
 // 回源校验管理员 Token（同一轮会话只校验一次）
@@ -125,10 +118,8 @@ const verifyUserToken = async () => {
 
 // 检查登录状态（路由守卫调用）
 //
-// 有本地存储的 auth 记录时：
-//   - type=admin：回源校验，失败清除；
-//   - type=user：回源校验，失败清除；
-//   - type=guest 或无记录：保持游客浏览。
+// 规则：本地有 auth 记录时回源校验，校验通过才认为已登录；
+// 无记录或校验失败一律视为未登录，由守卫送到对应入口页。
 const checkAuth = async () => {
   const stored = localStorage.getItem('auth')
   if (!stored) { _clearAuth(); return }
@@ -137,23 +128,20 @@ const checkAuth = async () => {
     if (data.type === 'admin') {
       authType.value = 'admin'
       isLoggedIn.value = await verifyAdminToken()
-      if (!isLoggedIn.value) guestLogin()
     } else if (data.type === 'user') {
       authType.value = 'user'
       isLoggedIn.value = true
-      // 后台回源校验；失败则静默降级为游客，不打断浏览
-      verifyUserToken().then(ok => { if (!ok) guestLogin() })
+      // 回源校验；身份失效则清除登录态（守卫会送到入口页重新同步）
+      verifyUserToken().then(ok => { if (!ok) _clearAuth() })
     } else {
       _clearAuth()
-      localStorage.setItem('auth', JSON.stringify({ type: 'guest' }))
     }
   } catch {
     _clearAuth()
-    localStorage.setItem('auth', JSON.stringify({ type: 'guest' }))
   }
 }
 
 export {
   authType, isLoggedIn, isAdmin, isUser, currentUser,
-  adminLogin, syncIdentity, guestLogin, logout, checkAuth
+  adminLogin, syncIdentity, logout, checkAuth
 }
