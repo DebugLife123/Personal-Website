@@ -5,7 +5,7 @@
          换图：把图片放到 public/images/ 或上传到图库，
          也可以直接在下方 HERO_SLIDES 里写死 image 地址
          ============================================================ -->
-    <section class="hero" @mouseenter="pauseHero" @mouseleave="resumeHero">
+    <section class="hero">
       <div class="hero-slides">
         <div
           v-for="(s, i) in slides"
@@ -41,6 +41,16 @@
             <path d="M15 6l-6 6 6 6" />
           </svg>
         </button>
+
+        <button class="hero-play" @click="toggleAuto" :aria-label="heroPaused ? '开始自动播放' : '暂停自动播放'">
+          <svg v-if="heroPaused" viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+            <path d="M8 5l11 7-11 7z" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+            <rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" />
+          </svg>
+        </button>
+
         <div class="hero-dots">
           <button
             v-for="(s, i) in slides"
@@ -53,6 +63,7 @@
             <span class="dot-fill" :style="i === heroIndex && !heroPaused ? { animationDuration: HERO_INTERVAL + 'ms' } : null"></span>
           </button>
         </div>
+
         <button class="hero-arrow" @click="goSlide(heroIndex + 1)" aria-label="下一张">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 6l6 6-6 6" />
@@ -202,7 +213,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '../utils/request'
 import { Notebook, Document, Picture } from '@element-plus/icons-vue'
@@ -230,7 +241,7 @@ const HERO_USE_PHOTO_CAPTION = false
 /** 图库为空时的兜底背景 */
 const HERO_FALLBACK = '/images/login-bg.jpg'
 
-const HERO_INTERVAL = 6000
+const HERO_INTERVAL = 2500
 
 // ============================================================
 // 轮播
@@ -276,6 +287,7 @@ const goSlide = (i) => {
 
 const restartHeroTimer = () => {
   clearInterval(heroTimer)
+  heroTimer = null
   if (heroPaused.value || slides.value.length < 2) return
   heroTimer = setInterval(() => {
     prevIndex.value = heroIndex.value
@@ -283,8 +295,22 @@ const restartHeroTimer = () => {
   }, HERO_INTERVAL)
 }
 
-const pauseHero = () => { heroPaused.value = true; clearInterval(heroTimer) }
-const resumeHero = () => { heroPaused.value = false; restartHeroTimer() }
+/** 手动暂停 / 继续自动播放 */
+const toggleAuto = () => {
+  heroPaused.value = !heroPaused.value
+  restartHeroTimer()
+}
+
+// 图片是异步加载的：数据到位（张数变化）后必须重启定时器，否则一直是单张兜底图、不会轮播
+watch(() => slides.value.length, (len) => {
+  if (heroIndex.value >= len) heroIndex.value = 0
+  restartHeroTimer()
+})
+
+const onVisibility = () => {
+  if (document.hidden) clearInterval(heroTimer)
+  else restartHeroTimer()
+}
 
 // ============================================================
 // 数据
@@ -341,11 +367,6 @@ const setupReveal = () => {
     })
   }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' })
   els.forEach((el) => observer.observe(el))
-}
-
-const onVisibility = () => {
-  if (document.hidden) clearInterval(heroTimer)
-  else restartHeroTimer()
 }
 
 onMounted(async () => {
@@ -560,6 +581,23 @@ onBeforeUnmount(() => {
 }
 
 .hero-arrow:hover { background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.5); transform: scale(1.06); }
+
+.hero-play {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: background 0.25s, transform 0.25s;
+}
+
+.hero-play:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.08); }
 
 .hero-dots { display: flex; align-items: center; gap: 9px; }
 
