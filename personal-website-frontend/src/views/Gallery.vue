@@ -25,6 +25,13 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
+          <button class="space-entry" @click="router.push('/gallery/space')" title="进入沉浸模式">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l2.1 5.2L20 10l-5.9 1.8L12 17l-2.1-5.2L4 10l5.9-1.8z" />
+              <path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" />
+            </svg>
+            沉浸模式
+          </button>
         </div>
       </div>
 
@@ -115,9 +122,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import request from '../utils/request'
 import { Search, Picture, Calendar, LocationInformation } from '@element-plus/icons-vue'
 
+const router = useRouter()
 const photos = ref([])
 const loading = ref(false)
 const pageLoaded = ref(false)
@@ -275,7 +284,33 @@ onBeforeUnmount(() => {
 .count-num { font-size: 1.5rem; font-weight: 800; color: var(--ink); }
 .count-label { font-size: 0.82rem; color: var(--ink-3); letter-spacing: 0.5px; }
 
-.gallery-search { width: 260px; }
+.tool-right { display: flex; align-items: center; gap: 10px; }
+
+.space-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--card);
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.22s, color 0.22s, transform 0.22s, box-shadow 0.22s;
+}
+
+.space-entry:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -12px rgba(61, 110, 224, 0.6);
+}
+
+.gallery-search { width: 240px; }
 .gallery-search :deep(.el-input__wrapper) {
   border-radius: 999px;
   background: var(--card);

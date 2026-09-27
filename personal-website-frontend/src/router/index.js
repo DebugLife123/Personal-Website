@@ -37,6 +37,13 @@ const routes = [
     name: 'Gallery',
     component: () => import('../views/Gallery.vue')
   },
+  {
+    // 沉浸模式：独立全屏页面（three.js 粒子照片墙）
+    path: '/gallery/space',
+    name: 'GallerySpace',
+    meta: { hideNav: true },
+    component: () => import('../views/GallerySpace.vue')
+  },
   { path: '/message', redirect: '/messages' },
   { path: '/blog', component: () => import('../views/Blog.vue') },
   {
