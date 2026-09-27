@@ -1,9 +1,21 @@
 <template>
-  <div class="login-page" ref="pageRef">
+  <div class="login-page" ref="pageRef" :class="{ 'bg-in': bgIn, 'card-in': cardIn }">
     <!-- 星空背景：public/images/login-bg.jpg（缺失时回退到内置星空渐变） -->
     <div class="bg-layer" :class="{ 'has-image': bgOk }" :style="bgOk ? { backgroundImage: `url(${BG_IMAGE})` } : null"></div>
     <div class="bg-veil"></div>
     <canvas ref="canvasRef" class="particle-canvas"></canvas>
+
+    <!-- ① 入场加载动画 -->
+    <transition name="loader-fade">
+      <div v-if="booting" class="boot-loader">
+        <div class="boot-mark">
+          <span class="boot-ring"></span>
+          <span class="boot-letter">Y</span>
+        </div>
+        <div class="boot-bar"><i :style="{ width: bootProgress + '%' }"></i></div>
+        <p class="boot-text">正在进入 · 拾枝者的自留地</p>
+      </div>
+    </transition>
 
     <!-- 右上角圆形按钮 -->
     <div class="page-tools">
@@ -24,8 +36,10 @@
       </button>
     </div>
 
-    <!-- 主体卡片 -->
-    <div class="login-shell">
+    <!-- ③ 登录卡片（从天而降后落定） -->
+    <div class="shell-drop">
+      <div class="shell-shadow"></div>
+      <div class="login-shell">
       <!-- 左：插画区 -->
       <div class="shell-visual">
         <div class="visual-brand">yu翔<span>拾枝者的自留地</span></div>
@@ -216,6 +230,7 @@
 
         <p class="shell-foot">yu翔 · 个人品牌网站</p>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -257,18 +272,78 @@ const BG_IMAGE = '/images/login-bg.jpg'
 const bgOk = ref(true)
 const isDarkMode = ref(getTheme() === 'dark')
 
+// ==================== 入场动效（加载 → 背景 → 卡片降临）====================
+const booting = ref(true)      // ① 加载动画
+const bootProgress = ref(0)    // 加载进度条
+const bgIn = ref(false)        // ② 背景图浮现
+const cardIn = ref(false)      // ③ 卡片从天而降
+
+const REDUCED_MOTION = typeof window !== 'undefined'
+  && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+
+let bgResolve
+const bgLoaded = new Promise((r) => { bgResolve = r })
+
+// 探测背景图是否存在，缺失则回退到内置星空；同时作为入场时序的「就绪」信号
+const probeBg = () => {
+  const img = new Image()
+  const finish = (ok) => { bgOk.value = ok; bgResolve() }
+  img.onload = () => finish(true)
+  img.onerror = () => finish(false)
+  img.src = BG_IMAGE
+  setTimeout(() => bgResolve(), 1800) // 兜底：网络慢也不让入场卡住
+}
+
+const runIntro = async () => {
+  if (REDUCED_MOTION) {
+    booting.value = false; bootProgress.value = 100
+    bgIn.value = true; cardIn.value = true
+    return
+  }
+  // 同一会话内再次进入：跳过加载层，只保留背景浮现 + 卡片降临
+  const played = sessionStorage.getItem('loginIntroPlayed') === '1'
+  try { sessionStorage.setItem('loginIntroPlayed', '1') } catch { /* 隐私模式忽略 */ }
+  if (played) {
+    booting.value = false
+    bootProgress.value = 100
+    bgIn.value = true
+    await wait(140)
+    cardIn.value = true
+    return
+  }
+  // 安全兜底：无论加载/入场时序出什么问题，4 秒后必须呈现可交互的最终状态
+  setTimeout(() => {
+    if (!cardIn.value) {
+      booting.value = false
+      bootProgress.value = 100
+      bgIn.value = true
+      cardIn.value = true
+    }
+  }, 4000)
+
+  // 进度条爬升（约 760ms），与背景图加载并行
+  const tick = setInterval(() => {
+    bootProgress.value = Math.min(96, bootProgress.value + 6 + Math.random() * 12)
+  }, 60)
+
+  await Promise.all([bgLoaded, wait(640)])
+  clearInterval(tick)
+  bootProgress.value = 100
+
+  await wait(160)
+  booting.value = false       // ① 加载层淡出
+  await wait(100)
+  bgIn.value = true           // ② 背景图由模糊放大到清晰
+  await wait(430)
+  cardIn.value = true         // ③ 卡片从天而降 + 落地回弹
+}
+
 const handleThemeToggle = () => {
   const next = isDarkMode.value ? 'light' : 'dark'
   setTheme(next)
   isDarkMode.value = next === 'dark'
-}
-
-// 探测背景图是否存在，缺失则回退到内置星空
-const probeBg = () => {
-  const img = new Image()
-  img.onload = () => { bgOk.value = true }
-  img.onerror = () => { bgOk.value = false }
-  img.src = BG_IMAGE
 }
 
 // ==================== Canvas 粒子系统 ====================
@@ -384,6 +459,7 @@ function onMouseLeave() {
 
 onMounted(() => {
   probeBg()
+  runIntro()
   canvas = canvasRef.value
   ctx = canvas.getContext('2d')
   mouse = { x: -9999, y: -9999 }
@@ -557,6 +633,142 @@ if (presetTab === 'register' || presetTab === 'login') {
   pointer-events: none;
 }
 
+/* ---------- ① 入场加载层 ---------- */
+.boot-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: radial-gradient(600px 400px at 50% 42%, #101a33 0%, #05070f 70%);
+}
+
+.boot-mark {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.boot-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #7ba3f5;
+  border-right-color: rgba(123, 163, 245, 0.5);
+  animation: boot-spin 0.9s linear infinite;
+}
+
+@keyframes boot-spin { to { transform: rotate(360deg); } }
+
+.boot-letter {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.92);
+  animation: boot-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes boot-pulse {
+  0%, 100% { opacity: 0.75; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+.boot-bar {
+  width: 168px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.boot-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #4f7ff0, #8fb4ff);
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.boot-text {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.loader-fade-leave-active { transition: opacity 0.5s ease; }
+.loader-fade-leave-to { opacity: 0; }
+
+/* ---------- ② 背景图浮现（初始隐藏） ---------- */
+.bg-layer {
+  opacity: 0;
+  transform: scale(1.16);
+  filter: blur(16px) saturate(0.7);
+}
+
+.bg-veil,
+.particle-canvas,
+.page-tools {
+  opacity: 0;
+}
+
+.login-page.bg-in .bg-layer {
+  opacity: 1;
+  transform: scale(1.04);
+  filter: blur(0) saturate(1);
+  transition: opacity 1.1s ease, transform 1.6s cubic-bezier(0.22, 1, 0.36, 1), filter 1.1s ease;
+}
+
+.login-page.bg-in .bg-veil {
+  opacity: 1;
+  transition: opacity 1.1s ease 0.1s;
+}
+
+.login-page.bg-in .particle-canvas,
+.login-page.bg-in .page-tools {
+  opacity: 1;
+  transition: opacity 0.9s ease 0.35s;
+}
+
+/* ---------- ③ 卡片从天而降 ---------- */
+.shell-drop {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(1000px, 100%);
+}
+
+.shell-shadow {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: -22px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 70%);
+  opacity: 0;
+  filter: blur(9px);
+}
+
+.login-page.card-in .shell-shadow {
+  animation: shadow-land 1.05s ease-out both;
+}
+
+@keyframes shadow-land {
+  0% { opacity: 0; transform: scale(0.72); }
+  55% { opacity: 0.85; transform: scale(1.05); }
+  100% { opacity: 0.5; transform: scale(1); }
+}
+
 .particle-canvas {
   position: absolute;
   inset: 0;
@@ -604,7 +816,7 @@ if (presetTab === 'register' || presetTab === 'login') {
   z-index: 2;
   display: grid;
   grid-template-columns: 1.05fr 1fr;
-  width: min(1000px, 100%);
+  width: 100%;
   min-height: 588px;
   border-radius: 26px;
   overflow: hidden;
@@ -612,12 +824,25 @@ if (presetTab === 'register' || presetTab === 'login') {
   box-shadow:
     0 40px 90px -30px rgba(0, 0, 0, 0.6),
     0 2px 8px rgba(0, 0, 0, 0.16);
-  animation: shell-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* 入场前藏在视口上方，等 card-in 触发后落下 */
+  opacity: 0;
+  transform: translateY(-115vh);
 }
 
-@keyframes shell-in {
-  from { opacity: 0; transform: translateY(18px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+.login-page.card-in .login-shell {
+  animation: card-drop 1.15s cubic-bezier(0.32, 0.72, 0.28, 1) both;
+}
+
+/* 从天而降 + 落地两次回弹 */
+@keyframes card-drop {
+  0%   { opacity: 0; transform: translateY(-115vh) scale(0.94); }
+  12%  { opacity: 1; }
+  58%  { opacity: 1; transform: translateY(0) scale(1); }
+  70%  { transform: translateY(-16px) scale(1.004); }
+  82%  { transform: translateY(0) scale(1); }
+  90%  { transform: translateY(-6px); }
+  95%  { transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ---------- 左：插画 ---------- */
@@ -935,9 +1160,10 @@ if (presetTab === 'register' || presetTab === 'login') {
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 900px) {
+  .shell-drop { width: min(460px, 100%); }
   .login-shell {
     grid-template-columns: 1fr;
-    width: min(460px, 100%);
+    width: 100%;
     min-height: 0;
   }
   .shell-visual { display: none; }
@@ -951,8 +1177,13 @@ if (presetTab === 'register' || presetTab === 'login') {
   .field-grid { grid-template-columns: 1fr; gap: 0; }
 }
 
+/* 关闭动效偏好：直接呈现最终状态 */
 @media (prefers-reduced-motion: reduce) {
-  .login-shell, .visual-art { animation: none; }
+  .login-shell, .visual-art, .shell-shadow { animation: none !important; }
+  .login-shell { opacity: 1; transform: none; }
+  .shell-shadow { opacity: 0.5; }
+  .bg-layer { opacity: 1; transform: scale(1.04); filter: none; }
+  .bg-veil, .page-tools { opacity: 1; }
   .particle-canvas { display: none; }
 }
 </style>
