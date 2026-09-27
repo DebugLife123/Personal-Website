@@ -297,13 +297,29 @@ html.dark .v-md-editor-preview hr {
    ============================================================ */
 
 /* ---- Home ---- */
-html.dark .home-wrapper {
-  background-color: var(--bg-page);
+html.dark .home-page,
+html.dark .projects-page,
+html.dark .message-page {
+  --page: #09090c;
+  --card: #131316;
+  --card-soft: #1a1a20;
+  --ink: #ece8e4;
+  --ink-2: #c8c4cc;
+  --ink-3: #9896a2;
+  --line: #1e1e26;
+  --line-2: #24242c;
+  --accent: #5b8def;
+  --accent-deep: #7ba3f5;
+  --accent-soft: #1a2233;
+  --cta: #3d6ee0;
+  --cta-hover: #2f59c2;
+  --shadow-1: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 12px 40px rgba(0, 0, 0, 0.55);
+
+  background: var(--page) !important;
+  color: var(--ink);
 }
-html.dark .main-card {
-  background: var(--bg-card);
-  box-shadow: var(--shadow-card);
-}
+
 html.dark .nickname {
   color: var(--text-primary);
 }
