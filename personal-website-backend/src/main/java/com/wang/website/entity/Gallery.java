@@ -28,6 +28,8 @@ public class Gallery {
     private String shotTime;
     /** 排序值，越小越靠前 */
     private Integer sort;
+    /** 是否设为首页轮播图 */
+    private Boolean hero;
     /** visible / hidden */
     private String status;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

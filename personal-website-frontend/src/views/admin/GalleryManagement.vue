@@ -1,6 +1,15 @@
 <template>
   <div class="gallery-admin">
     <el-card shadow="never" class="main-card">
+      <!-- 说明 -->
+      <div class="intro">
+        <el-icon><InfoFilled /></el-icon>
+        <span>
+          勾选「设为轮播」的照片会出现在首页顶部轮播（最多 {{ HERO_MAX }} 张，按排序值排列）。
+          当前已设 <b>{{ heroCount }}</b> 张。
+        </span>
+      </div>
+
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
@@ -15,10 +24,11 @@
             @keyup.enter="load(1)"
             @clear="load(1)"
           />
-          <el-select v-model="statusFilter" style="width: 120px" @change="load(1)">
+          <el-select v-model="statusFilter" style="width: 130px" @change="load(1)">
             <el-option label="全部" value="all" />
             <el-option label="显示中" value="visible" />
             <el-option label="已隐藏" value="hidden" />
+            <el-option label="首页轮播" value="hero" />
           </el-select>
           <el-button type="primary" :icon="Plus" @click="openCreate">新增照片</el-button>
         </div>
@@ -30,6 +40,7 @@
           <template #default="{ row }">
             <div class="thumb" @click="preview(row)">
               <img :src="row.url" alt="" />
+              <span v-if="row.hero" class="thumb-hero">轮播</span>
             </div>
           </template>
         </el-table-column>
@@ -56,8 +67,16 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="上传时间" width="165" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="286" fixed="right">
           <template #default="{ row }">
+            <el-button
+              size="small"
+              :type="row.hero ? 'success' : 'primary'"
+              text
+              @click="toggleHero(row)"
+            >
+              {{ row.hero ? '取消轮播' : '设为轮播' }}
+            </el-button>
             <el-button
               size="small"
               :type="row.status === 'visible' ? 'info' : 'success'"
@@ -146,6 +165,10 @@
         <el-form-item label="显示">
           <el-switch v-model="visible" active-text="在图库中显示" />
         </el-form-item>
+
+        <el-form-item label="首页轮播">
+          <el-switch v-model="heroSwitch" active-text="加入首页顶部轮播" />
+        </el-form-item>
       </el-form>
 
       <template #footer>
@@ -159,12 +182,16 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh } from '@element-plus/icons-vue'
+import { Plus, Refresh, InfoFilled } from '@element-plus/icons-vue'
 import request from '../../utils/request'
 import { uploadUrl as buildUploadUrl, authHeaders } from '../../utils/api'
 
+/** 与后端 GalleryController.HERO_MAX 保持一致 */
+const HERO_MAX = 8
+
 const photos = ref([])
 const total = ref(0)
+const heroCount = ref(0)
 const loading = ref(false)
 const saving = ref(false)
 const keyword = ref('')
@@ -176,9 +203,10 @@ const uploadHeaders = computed(() => authHeaders())
 
 const form = reactive({
   id: null, title: '', description: '', url: '',
-  location: '', shotTime: '', sort: 0, status: 'visible'
+  location: '', shotTime: '', sort: 0, status: 'visible', hero: false
 })
 const visible = ref(true)
+const heroSwitch = ref(false)
 const dialog = reactive({ show: false, id: null })
 
 const load = async (page = 1) => {
@@ -199,6 +227,8 @@ const load = async (page = 1) => {
     } else {
       ElMessage.error(res.data.message || '加载失败')
     }
+    const cnt = await request.get('/gallery/admin/heroCount').catch(() => null)
+    if (cnt?.data?.code === 200) heroCount.value = cnt.data.data
   } catch {
     ElMessage.error('加载失败')
   } finally {
@@ -206,12 +236,33 @@ const load = async (page = 1) => {
   }
 }
 
+// 设为 / 取消首页轮播图
+const toggleHero = async (row) => {
+  const next = !row.hero
+  if (next && heroCount.value >= HERO_MAX) {
+    ElMessage.warning(`首页轮播最多 ${HERO_MAX} 张，请先取消其他照片`)
+    return
+  }
+  try {
+    const res = await request.put(`/gallery/admin/hero/${row.id}?hero=${next}`)
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.message)
+      await load(pager.page)
+    } else {
+      ElMessage.error(res.data.message || '操作失败')
+    }
+  } catch {
+    ElMessage.error('操作失败')
+  }
+}
+
 const resetForm = () => {
   Object.assign(form, {
     id: null, title: '', description: '', url: '',
-    location: '', shotTime: '', sort: 0, status: 'visible'
+    location: '', shotTime: '', sort: 0, status: 'visible', hero: false
   })
   visible.value = true
+  heroSwitch.value = false
 }
 
 const openCreate = () => {
@@ -229,17 +280,25 @@ const openEdit = (row) => {
     location: row.location || '',
     shotTime: row.shotTime || '',
     sort: row.sort ?? 0,
-    status: row.status || 'visible'
+    status: row.status || 'visible',
+    hero: !!row.hero
   })
   visible.value = form.status !== 'hidden'
+  heroSwitch.value = !!row.hero
   dialog.id = row.id
   dialog.show = true
 }
 
 const save = async () => {
   if (!form.url) { ElMessage.warning('请先上传照片或填写图片地址'); return }
+  // 新增时若勾了轮播，先做数量校验
+  if (!form.id && heroSwitch.value && heroCount.value >= HERO_MAX) {
+    ElMessage.warning(`首页轮播最多 ${HERO_MAX} 张，请先取消其他照片`)
+    return
+  }
   saving.value = true
   form.status = visible.value ? 'visible' : 'hidden'
+  form.hero = heroSwitch.value
   try {
     const payload = { ...form }
     const res = form.id
@@ -317,6 +376,20 @@ onMounted(() => load())
 .gallery-admin { display: flex; flex-direction: column; gap: 16px; }
 .main-card { border-radius: 12px; }
 
+.intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f7f8fb;
+  color: #6b7488;
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.intro b { color: #303133; }
+
 .toolbar {
   display: flex;
   justify-content: space-between;
@@ -329,6 +402,7 @@ onMounted(() => load())
 .toolbar-right { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .thumb {
+  position: relative;
   width: 84px;
   height: 60px;
   border-radius: 8px;
@@ -337,6 +411,18 @@ onMounted(() => load())
   background: #f4f5f8;
 }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.thumb-hero {
+  position: absolute;
+  left: 5px;
+  bottom: 5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(103, 194, 58, 0.94);
+  color: #fff;
+  font-size: 0.64rem;
+  letter-spacing: 0.5px;
+}
 
 .info-cell { display: flex; flex-direction: column; gap: 3px; }
 .info-title { font-size: 0.9rem; font-weight: 600; color: #303133; }

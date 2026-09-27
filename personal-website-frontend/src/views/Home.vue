@@ -236,11 +236,13 @@ const HERO_INTERVAL = 6000
 // 轮播
 // ============================================================
 const galleryPhotos = ref([])
+const heroPhotos = ref([])
 const heroIndex = ref(0)
 const prevIndex = ref(-1)
 const heroPaused = ref(false)
 let heroTimer = null
 
+// 轮播图来源优先级：手动写死的 HERO_SLIDES → 后台勾选的「首页轮播图」→ 全部图库照片 → 内置星空图
 const slides = computed(() => {
   if (HERO_SLIDES.length) {
     return HERO_SLIDES.map((s) => ({
@@ -250,8 +252,9 @@ const slides = computed(() => {
       sub: s.sub || HERO_TEXT.sub
     }))
   }
-  if (galleryPhotos.value.length) {
-    return galleryPhotos.value.slice(0, 5).map((p) => ({
+  const list = heroPhotos.value.length ? heroPhotos.value : galleryPhotos.value
+  if (list.length) {
+    return list.slice(0, 5).map((p) => ({
       image: p.url,
       kicker: (HERO_USE_PHOTO_CAPTION && p.location) || HERO_TEXT.kicker,
       title: (HERO_USE_PHOTO_CAPTION && p.title) || HERO_TEXT.title,
@@ -291,12 +294,16 @@ const articles = ref([])
 const projectCount = ref(0)
 
 const loadData = async () => {
-  const [galleryRes, articleRes, projectRes] = await Promise.all([
+  const [heroRes, galleryRes, articleRes, projectRes] = await Promise.all([
+    request.get('/gallery/hero').catch(() => null),
     request.get('/gallery/list').catch(() => null),
     request.get('/article/page', { params: { page: 1, pageSize: 3, status: '已发布' } }).catch(() => null),
     request.get('/project/list').catch(() => null)
   ])
 
+  if (heroRes?.data?.code === 200) {
+    heroPhotos.value = (heroRes.data.data || []).filter((p) => p.url)
+  }
   if (galleryRes?.data?.code === 200) {
     galleryPhotos.value = (galleryRes.data.data || []).filter((p) => p.url)
     galleryThumbs.value = galleryPhotos.value.slice(0, 4)

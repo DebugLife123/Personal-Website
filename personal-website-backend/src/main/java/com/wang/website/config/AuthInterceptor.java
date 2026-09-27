@@ -40,6 +40,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/article/listByCategory",
             "/api/article/listByTag",
             "/api/gallery/list",
+            "/api/gallery/hero",
             "/api/message/list",
             "/api/music/enabled",
             "/api/project/list",

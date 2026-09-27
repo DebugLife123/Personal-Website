@@ -227,10 +227,19 @@ CREATE TABLE IF NOT EXISTS gallery (
     location VARCHAR(100) DEFAULT '' COMMENT '拍摄地（可选）',
     shot_time VARCHAR(50) DEFAULT '' COMMENT '拍摄时间文本（可选）',
     sort INT DEFAULT 0 COMMENT '排序值，越小越靠前',
+    hero TINYINT(1) DEFAULT 0 COMMENT '是否设为首页轮播图',
     status VARCHAR(20) DEFAULT 'visible' COMMENT 'visible/hidden',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
     INDEX idx_gallery_status_sort (status, sort)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图库照片表';
+
+-- 7.2 存量库迁移：补 hero 列（首页轮播标记）
+SET @col := (SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gallery' AND COLUMN_NAME = 'hero');
+SET @sql := IF(@col = 0,
+    'ALTER TABLE gallery ADD COLUMN hero TINYINT(1) DEFAULT 0 COMMENT ''是否设为首页轮播图''',
+    'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 8. 操作日志表
 CREATE TABLE IF NOT EXISTS operation_log (

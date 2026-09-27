@@ -36,17 +36,37 @@ public class GalleryController {
         return Result.success(galleryMapper.selectList(wrapper));
     }
 
+    /** 首页轮播图（后台勾选的照片，按排序值升序） */
+    @GetMapping("/hero")
+    public Result<List<Gallery>> heroList() {
+        QueryWrapper<Gallery> wrapper = new QueryWrapper<Gallery>()
+                .eq("status", "visible")
+                .eq("hero", true)
+                .orderByAsc("sort")
+                .orderByDesc("create_time");
+        return Result.success(galleryMapper.selectList(wrapper));
+    }
+
     // ==================== 后台 ====================
 
-    /** 分页查询（含隐藏照片，可按状态/关键词筛选） */
+    /** 首页轮播最多张数（避免轮播过长） */
+    private static final int HERO_MAX = 8;
+
+    /** 分页查询（含隐藏照片，可按状态/关键词筛选；status=hero 表示只看轮播图） */
     @GetMapping("/admin/page")
     public Result<IPage<Gallery>> adminPage(@RequestParam(defaultValue = "1") Integer page,
                                             @RequestParam(defaultValue = "10") Integer pageSize,
                                             @RequestParam(required = false) String keyword,
-                                            @RequestParam(required = false) String status) {
+                                            @RequestParam(required = false) String status,
+                                            @RequestParam(required = false) Integer hero) {
         QueryWrapper<Gallery> wrapper = new QueryWrapper<>();
-        if (status != null && !status.trim().isEmpty() && !"all".equals(status)) {
+        if ("hero".equals(status)) {
+            wrapper.eq("hero", true);
+        } else if (status != null && !status.trim().isEmpty() && !"all".equals(status)) {
             wrapper.eq("status", status);
+        }
+        if (hero != null) {
+            wrapper.eq("hero", hero == 1);
         }
         if (keyword != null && !keyword.trim().isEmpty()) {
             wrapper.and(w -> w.like("title", keyword)
@@ -55,6 +75,29 @@ public class GalleryController {
         }
         wrapper.orderByAsc("sort").orderByDesc("create_time");
         return Result.success(galleryMapper.selectPage(new Page<>(page, pageSize), wrapper));
+    }
+
+    /** 轮播图数量（前台首页与后台都会用到） */
+    @GetMapping("/admin/heroCount")
+    public Result<Integer> heroCount() {
+        return Result.success(Math.toIntExact(
+                galleryMapper.selectCount(new QueryWrapper<Gallery>().eq("hero", true))));
+    }
+
+    /** 设为 / 取消首页轮播图 */
+    @PutMapping("/admin/hero/{id}")
+    public Result<String> toggleHero(@PathVariable Integer id, @RequestParam Boolean hero) {
+        Gallery gallery = galleryMapper.selectById(id);
+        if (gallery == null) return Result.error("照片不存在");
+        if (Boolean.TRUE.equals(hero)) {
+            long count = galleryMapper.selectCount(new QueryWrapper<Gallery>().eq("hero", true));
+            if (count >= HERO_MAX) {
+                return Result.error("首页轮播最多 " + HERO_MAX + " 张，请先取消其他照片");
+            }
+        }
+        gallery.setHero(Boolean.TRUE.equals(hero));
+        galleryMapper.updateById(gallery);
+        return Result.success(Boolean.TRUE.equals(hero) ? "已设为首页轮播图" : "已取消轮播");
     }
 
     /** 新增照片 */
