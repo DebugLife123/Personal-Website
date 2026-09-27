@@ -78,7 +78,7 @@
     </section>
 
     <!-- ============================================================
-         ② 个人卡（9:16）+ 右侧三联卡（图库 / 音乐 / 站点统计）
+         ② 个人卡（9:16）+ 图库入口
          ============================================================ -->
     <section class="profile-section reveal">
       <div class="profile-grid">
@@ -112,84 +112,31 @@
           <p class="id-foot">© 2025 - {{ new Date().getFullYear() }}</p>
         </aside>
 
-        <!-- 右侧三联卡 -->
-        <div class="side-col">
-          <!-- ① 图库入口（紧凑版：3 张小图） -->
-          <div class="gallery-entry" @click="router.push('/gallery')">
-            <div class="ge-main">
-              <div>
-                <p class="ge-kicker">GALLERY</p>
-                <h3 class="ge-title">我的图库</h3>
-                <p class="ge-sub">随手拍下的光与影</p>
-              </div>
-              <span class="ge-arrow">
-                进入照片墙
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 12h13M13 6l6 6-6 6" />
-                </svg>
-              </span>
+        <!-- 图库入口 -->
+        <div class="gallery-entry" @click="router.push('/gallery')">
+          <div class="ge-head">
+            <div>
+              <p class="ge-kicker">GALLERY</p>
+              <h3 class="ge-title">我的图库</h3>
+              <p class="ge-sub">随手拍下的光与影，都在这里飘着</p>
             </div>
-
-            <div class="ge-thumbs" :class="{ empty: !galleryThumbs.length }">
-              <template v-if="galleryThumbs.length">
-                <div v-for="p in galleryThumbs" :key="p.id" class="ge-thumb">
-                  <img :src="mediaUrl(p.url)" :alt="p.title || p.description || '照片'" loading="lazy" />
-                </div>
-              </template>
-              <div v-else class="ge-empty">
-                <el-icon :size="22"><Picture /></el-icon>
-                <span>图库还空着</span>
-              </div>
-            </div>
+            <span class="ge-arrow">
+              进入照片墙
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h13M13 6l6 6-6 6" />
+              </svg>
+            </span>
           </div>
 
-          <!-- ② 音乐播放器 -->
-          <div class="music-card" :class="{ playing: music.playing }">
-            <div class="mc-cover" :class="{ rotating: music.playing }">
-              <img v-if="music.track?.cover" :src="mediaUrl(music.track.cover)" alt="cover" />
-              <div v-else class="mc-cover-fallback">
-                <el-icon :size="26"><Headset /></el-icon>
+          <div class="ge-thumbs" :class="{ empty: !galleryThumbs.length }">
+            <template v-if="galleryThumbs.length">
+              <div v-for="(p, i) in galleryThumbs" :key="p.id" class="ge-thumb" :class="`t${i}`">
+                <img :src="p.url" :alt="p.title || p.description || '照片'" loading="lazy" />
               </div>
-            </div>
-
-            <div class="mc-info">
-              <p class="mc-kicker">NOW PLAYING</p>
-              <p class="mc-name" :title="music.track?.name">{{ music.track?.name || '还没有可播放的音乐' }}</p>
-
-              <div class="mc-progress">
-                <i :style="{ width: music.percent + '%' }"></i>
-              </div>
-
-              <div class="mc-controls">
-                <button class="mc-btn main" @click="toggleMusic" :disabled="!music.track" :aria-label="music.playing ? '暂停' : '播放'">
-                  <svg v-if="music.playing" viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
-                    <rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" />
-                  </svg>
-                  <svg v-else viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
-                    <path d="M8 5l11 7-11 7z" />
-                  </svg>
-                </button>
-                <button class="mc-btn" @click="nextMusic" :disabled="!music.track" aria-label="下一首">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M5 5l9 7-9 7zM19 5v14" />
-                  </svg>
-                </button>
-                <span class="mc-time">{{ music.current }} / {{ music.duration }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- ③ 站点统计 -->
-          <div class="stats-card">
-            <div class="stats-head">
-              <p class="stats-kicker">STATS</p>
-              <h3 class="stats-title">站点统计</h3>
-            </div>
-            <div class="stats-grid">
-              <div v-for="s in stats" :key="s.label" class="stat-item">
-                <span class="stat-num">{{ s.value }}</span>
-                <span class="stat-label">{{ s.label }}</span>
-              </div>
+            </template>
+            <div v-else class="ge-empty">
+              <el-icon :size="26"><Picture /></el-icon>
+              <span>图库还空着，去后台上传几张</span>
             </div>
           </div>
         </div>
@@ -266,12 +213,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '../utils/request'
-import musicPlayer from '../utils/musicPlayer'
-import { mediaUrl } from '../utils/api'
-import { Notebook, Document, Picture, Headset } from '@element-plus/icons-vue'
+import { Notebook, Document, Picture } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -374,81 +319,12 @@ const galleryThumbs = ref([])
 const articles = ref([])
 const projectCount = ref(0)
 
-// ============================================================
-// 音乐播放器（复用全局单例，与导航栏胶囊播放器保持同步）
-// ============================================================
-const music = reactive({
-  track: null,
-  playing: false,
-  current: '0:00',
-  duration: '0:00',
-  percent: 0
-})
-let musicTimer = null
-
-const fmtTime = (sec) => {
-  if (!Number.isFinite(sec) || sec < 0) return '0:00'
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${String(s).padStart(2, '0')}`
-}
-
-const syncMusic = () => {
-  music.track = musicPlayer.getCurrentTrack()
-  music.playing = musicPlayer.getIsPlaying()
-  const audio = musicPlayer.audio
-  if (audio) {
-    music.current = fmtTime(audio.currentTime)
-    music.duration = fmtTime(audio.duration)
-    music.percent = audio.duration ? Math.min(100, (audio.currentTime / audio.duration) * 100) : 0
-  } else {
-    music.percent = 0
-    music.current = '0:00'
-    music.duration = '0:00'
-  }
-}
-
-const startMusicPoll = () => {
-  clearInterval(musicTimer)
-  musicTimer = setInterval(syncMusic, 500)
-}
-
-const toggleMusic = () => {
-  if (!musicPlayer.getCurrentTrack()) return
-  musicPlayer.togglePlay()
-  syncMusic()
-}
-
-const nextMusic = () => {
-  if (!musicPlayer.getCurrentTrack()) return
-  musicPlayer.nextTrack()
-  syncMusic()
-}
-
-// ============================================================
-// 站点统计
-// ============================================================
-const stats = ref([
-  { label: '文章', value: '-' },
-  { label: '留言', value: '-' },
-  { label: '照片', value: '-' },
-  { label: '总浏览', value: '-' },
-  { label: '总访客', value: '-' },
-  { label: '今日浏览', value: '-' }
-])
-
-const fmtNum = (n) => (n === null || n === undefined || n === '' ? '-' : Number(n).toLocaleString())
-
 const loadData = async () => {
-  const [heroRes, galleryRes, articleRes, projectRes, musicRes, msgRes, totalRes, todayRes] = await Promise.all([
+  const [heroRes, galleryRes, articleRes, projectRes] = await Promise.all([
     request.get('/gallery/hero').catch(() => null),
     request.get('/gallery/list').catch(() => null),
     request.get('/article/page', { params: { page: 1, pageSize: 3, status: '已发布' } }).catch(() => null),
-    request.get('/project/list').catch(() => null),
-    request.get('/music/enabled').catch(() => null),
-    request.get('/message/list').catch(() => null),
-    request.get('/statistic/total').catch(() => null),
-    request.get('/statistic/today').catch(() => null)
+    request.get('/project/list').catch(() => null)
   ])
 
   if (heroRes?.data?.code === 200) {
@@ -456,42 +332,14 @@ const loadData = async () => {
   }
   if (galleryRes?.data?.code === 200) {
     galleryPhotos.value = (galleryRes.data.data || []).filter((p) => p.url)
-    galleryThumbs.value = galleryPhotos.value.slice(0, 3)
+    galleryThumbs.value = galleryPhotos.value.slice(0, 4)
   }
-  let articleTotal = 0
   if (articleRes?.data?.code === 200) {
     articles.value = (articleRes.data.data?.records || []).slice(0, 3)
-    articleTotal = articleRes.data.data?.total ?? articles.value.length
   }
   if (projectRes?.data?.code === 200) {
     projectCount.value = (projectRes.data.data || []).length
   }
-
-  // 统计卡数据
-  const msgCount = msgRes?.data?.code === 200 ? (msgRes.data.data || []).length : null
-  const total = totalRes?.data?.code === 200 ? totalRes.data.data : null
-  const today = todayRes?.data?.code === 200 ? todayRes.data.data : null
-  stats.value = [
-    { label: '文章', value: fmtNum(articleTotal) },
-    { label: '留言', value: fmtNum(msgCount) },
-    { label: '照片', value: fmtNum(galleryPhotos.value.length) },
-    { label: '总浏览', value: fmtNum(total?.pageViews) },
-    { label: '总访客', value: fmtNum(total?.uniqueVisitors) },
-    { label: '今日浏览', value: fmtNum(today?.pageViews) }
-  ]
-
-  // 音乐：导航栏已经初始化过就不要再 init（会打断正在播放的歌）
-  const list = musicRes?.data?.code === 200 ? (musicRes.data.data || []) : []
-  const tracks = list.map((t) => ({
-    name: t.artist ? `${t.name} - ${t.artist}` : t.name,
-    url: mediaUrl(t.url),
-    cover: mediaUrl(t.cover) || ''
-  }))
-  if (tracks.length && musicPlayer.playlist.length === 0) {
-    musicPlayer.init(tracks)
-  }
-  syncMusic()
-  startMusicPoll()
 }
 
 const openExternal = (url) => window.open(url, '_blank')
@@ -531,7 +379,6 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearInterval(heroTimer)
-  clearInterval(musicTimer)
   observer?.disconnect()
   document.removeEventListener('visibilitychange', onVisibility)
 })
@@ -570,9 +417,9 @@ onBeforeUnmount(() => {
    ============================================================ */
 .hero {
   position: relative;
-  height: 64vh;
-  min-height: 520px;
-  max-height: 760px;
+  height: 100vh;
+  min-height: 620px;
+  max-height: 1000px;
   overflow: hidden;
   background: #0b1020;
 }
@@ -619,8 +466,7 @@ onBeforeUnmount(() => {
   height: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  /* 上留导航栏、下留轮播控制条，内容居中不打架 */
-  padding: 76px 28px 104px;
+  padding: 65px 28px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -818,21 +664,14 @@ onBeforeUnmount(() => {
 .profile-section {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 56px 28px 0;
+  padding: 64px 28px 0;
 }
 
 .profile-grid {
   display: grid;
-  grid-template-columns: 352px minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-/* 右侧三联卡 */
-.side-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  grid-template-columns: 288px minmax(0, 1fr);
+  gap: 26px;
+  align-items: stretch;
 }
 
 /* 9:16 竖屏个人卡 */
@@ -929,10 +768,13 @@ onBeforeUnmount(() => {
   color: var(--ink-3);
 }
 
-/* 图库入口（紧凑版） */
+/* 图库入口 */
 .gallery-entry {
   position: relative;
-  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 32px 34px;
   border-radius: 18px;
   overflow: hidden;
   cursor: pointer;
@@ -947,42 +789,42 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(460px 240px at 12% 8%, rgba(96, 140, 255, 0.28), transparent 62%),
-    radial-gradient(360px 240px at 88% 92%, rgba(150, 110, 240, 0.22), transparent 62%);
+    radial-gradient(560px 320px at 12% 8%, rgba(96, 140, 255, 0.28), transparent 62%),
+    radial-gradient(420px 300px at 88% 92%, rgba(150, 110, 240, 0.22), transparent 62%);
   pointer-events: none;
 }
 
 .gallery-entry:hover { transform: translateY(-4px); box-shadow: var(--shadow-2); }
 
-.ge-main {
+.ge-head {
   position: relative;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 20px;
 }
 
 .ge-kicker {
-  margin: 0 0 6px;
-  font-size: 0.64rem;
+  margin: 0 0 8px;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 4px;
   color: rgba(255, 255, 255, 0.5);
 }
 
-.ge-title { margin: 0 0 6px; font-size: 1.28rem; font-weight: 800; letter-spacing: 1px; }
-.ge-sub { margin: 0; font-size: 0.78rem; color: rgba(255, 255, 255, 0.58); }
+.ge-title { margin: 0 0 8px; font-size: 1.5rem; font-weight: 800; letter-spacing: 1px; }
+.ge-sub { margin: 0; font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
 
 .ge-arrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  padding: 7px 14px;
+  padding: 8px 15px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.1);
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   white-space: nowrap;
   transition: background 0.28s, transform 0.28s, border-color 0.28s;
 }
@@ -996,16 +838,16 @@ onBeforeUnmount(() => {
 .ge-thumbs {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   align-items: start;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 30px;
 }
 
 .ge-thumb {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
   width: 100%;
-  border-radius: 11px;
+  border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.05);
@@ -1025,187 +867,16 @@ onBeforeUnmount(() => {
 
 .ge-empty {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 26px 0;
-  border-radius: 11px;
-  border: 1px dashed rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.78rem;
-}
-
-/* ============================================================
-   音乐播放器卡
-   ============================================================ */
-.music-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
-  border-radius: 18px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-1);
-  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), border-color 0.3s;
-}
-
-.music-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); }
-.music-card.playing { border-color: var(--accent); }
-
-.mc-cover {
-  position: relative;
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  background: linear-gradient(135deg, #d4cce6, #b8a8d4);
-  box-shadow: 0 8px 22px -10px rgba(16, 24, 40, 0.45);
-}
-
-.mc-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-.mc-cover-fallback {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.mc-cover.rotating { animation: mcSpin 8s linear infinite; }
-
-@keyframes mcSpin { to { transform: rotate(360deg); } }
-
-.mc-info { flex: 1; min-width: 0; }
-
-.mc-kicker {
-  margin: 0 0 5px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: var(--accent);
-}
-
-.mc-name {
-  margin: 0 0 10px;
-  font-size: 0.94rem;
-  font-weight: 700;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mc-progress {
-  height: 3px;
-  border-radius: 3px;
-  background: var(--line);
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.mc-progress i {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--accent), #8fb4ff);
-  transition: width 0.45s linear;
-}
-
-.mc-controls { display: flex; align-items: center; gap: 9px; }
-
-.mc-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid var(--line-2);
-  background: var(--card-soft);
-  color: var(--ink-2);
-  cursor: pointer;
-  transition: background 0.22s, color 0.22s, transform 0.22s, border-color 0.22s;
-}
-
-.mc-btn:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--accent); color: var(--accent); }
-.mc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-.mc-btn.main {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: var(--ink);
-  color: #fff;
-}
-
-.mc-btn.main:hover:not(:disabled) { background: var(--accent); color: #fff; }
-
-.mc-time {
-  margin-left: auto;
-  font-size: 0.7rem;
-  letter-spacing: 0.5px;
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ============================================================
-   站点统计卡
-   ============================================================ */
-.stats-card {
-  padding: 18px 20px;
-  border-radius: 18px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-1);
-  transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease);
-}
-
-.stats-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); }
-
-.stats-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 13px; }
-
-.stats-kicker {
-  margin: 0;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: var(--accent);
-}
-
-.stats-title { margin: 0; font-size: 0.98rem; font-weight: 800; letter-spacing: 0.5px; color: var(--ink); }
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.stat-item {
-  display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 11px 6px;
-  border-radius: 11px;
-  background: var(--card-soft);
-  border: 1px solid var(--line);
-  transition: border-color 0.25s, transform 0.25s, background 0.25s;
+  justify-content: center;
+  gap: 10px;
+  padding: 46px 0;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
 }
-
-.stat-item:hover { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-2px); }
-
-.stat-num {
-  font-size: 1.02rem;
-  font-weight: 800;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-label { font-size: 0.68rem; color: var(--ink-3); letter-spacing: 0.3px; }
 
 /* ============================================================
    ③ 最新文章
@@ -1442,25 +1113,22 @@ onBeforeUnmount(() => {
    响应式
    ============================================================ */
 @media (max-width: 1000px) {
-  .profile-grid { grid-template-columns: 280px minmax(0, 1fr); }
-  .mc-cover { width: 68px; height: 68px; }
-  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .profile-grid { grid-template-columns: 240px minmax(0, 1fr); }
+  .ge-thumbs { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 760px) {
-  .hero { height: 56vh; min-height: 440px; }
-  .hero-controls { bottom: 58px; }
-  .profile-section { padding: 38px 18px 0; }
-  .profile-grid { grid-template-columns: 1fr; gap: 18px; }
+  .hero { height: 88vh; min-height: 520px; }
+  .hero-controls { bottom: 62px; }
+  .profile-section { padding: 42px 18px 0; }
+  .profile-grid { grid-template-columns: 1fr; }
   .id-card {
     aspect-ratio: auto;
     max-width: 300px;
     margin: 0 auto;
   }
-  .gallery-entry { padding: 20px 20px; }
-  .ge-main { flex-direction: column; gap: 12px; }
-  .music-card { padding: 18px; gap: 14px; }
-  .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .gallery-entry { padding: 26px 22px; }
+  .ge-head { flex-direction: column; }
   .blog-section { padding: 56px 18px 0; }
   .blog-grid { grid-template-columns: 1fr; }
   .works-cta { margin: 56px 18px 0; }

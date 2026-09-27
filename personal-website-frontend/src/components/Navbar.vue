@@ -80,6 +80,7 @@ import {
 } from '@element-plus/icons-vue'
 import musicPlayer from '../utils/musicPlayer'
 import request from '../utils/request'
+import { mediaUrl } from '../utils/api'
 import { isLoggedIn, isAdmin, currentUser, logout } from '../utils/auth'
 import { avatarUrl } from '../utils/avatar'
 
@@ -142,8 +143,9 @@ const fetchPlaylist = async () => {
     if (res.data.code === 200) {
       const tracks = (res.data.data || []).map(t => ({
         name: t.artist ? `${t.name} - ${t.artist}` : t.name,
-        url: t.url,
-        cover: t.cover || '',
+        // mediaUrl：兼容历史数据里写死的本机地址（如 http://localhost:8080/uploads/...）
+        url: mediaUrl(t.url),
+        cover: mediaUrl(t.cover) || '',
       }))
       playlist.value = tracks
       if (tracks.length > 0) {
