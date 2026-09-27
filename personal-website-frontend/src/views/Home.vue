@@ -36,10 +36,6 @@
     LeetCode
   </el-button>
       </div>
-
-      <div class="card-footer">
-        <p>豫公网安备XXXXXXXX号 | 豫ICP备XXXXXXXX号-1 | © 2025-2026 yu翔.</p>
-      </div>
     </div>
   </div>
 </template>
@@ -66,7 +62,7 @@ const openExternal = (url) => {
   background: white;
   width: 100%;
   max-width: 860px;
-  padding: 80px 50px 20px;
+  padding: 80px 50px 60px;
   border-radius: 24px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
   text-align: center;
@@ -83,20 +79,18 @@ const openExternal = (url) => {
 .social-btn { padding: 20px 30px; border-radius: 12px; font-size: 1rem; transition: all 0.3s; }
 .social-btn:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
-.card-footer { font-size: 0.8rem; color: #999; border-top: 1px solid #f0f0f0; padding-top: 20px; }
-
 @media (max-width: 768px) {
   .home-wrapper { padding: 12px; }
   .nickname { font-size: 2rem; }
   .social-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .main-card { padding: 60px 20px 16px; border-radius: 18px; }
+  .main-card { padding: 60px 20px 44px; border-radius: 18px; }
   .social-btn { padding: 16px 18px; font-size: 0.9rem; }
   .motto { font-size: 0.9rem; padding: 0 10px; }
 }
 @media (max-width: 480px) {
   .social-grid { grid-template-columns: 1fr 1fr; }
   .nickname { font-size: 1.7rem; }
-  .main-card { padding: 50px 14px 14px; }
+  .main-card { padding: 50px 14px 40px; }
 }
 
 </style>

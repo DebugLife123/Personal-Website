@@ -8,7 +8,6 @@
           <el-form :model="form" label-width="96px" v-loading="loading">
             <el-form-item label="站点标题"><el-input v-model="form.site_title" /></el-form-item>
             <el-form-item label="站点简介"><el-input v-model="form.site_description" type="textarea" :rows="2" /></el-form-item>
-            <el-form-item label="备案号"><el-input v-model="form.icp" placeholder="如：湘ICP备xxxx号" /></el-form-item>
             <el-form-item label="页脚文案"><el-input v-model="form.footer_text" /></el-form-item>
             <el-form-item label="音乐自动播放">
               <el-switch v-model="autoplay" active-text="开" inactive-text="关" />
@@ -43,7 +42,7 @@ import { ref, onMounted } from 'vue'
 import request from '../../utils/request'
 import { ElMessage } from 'element-plus'
 
-const form = ref({ site_title: '', site_description: '', icp: '', footer_text: '', music_autoplay: 'false' })
+const form = ref({ site_title: '', site_description: '', footer_text: '', music_autoplay: 'false' })
 const autoplay = ref(false)
 const loading = ref(false)
 const saving = ref(false)

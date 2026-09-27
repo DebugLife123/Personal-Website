@@ -313,10 +313,6 @@ html.dark .motto {
 html.dark .motto span {
   color: var(--border);
 }
-html.dark .card-footer {
-  color: var(--text-muted);
-  border-top-color: var(--border);
-}
 html.dark .social-btn {
   background: var(--bg-elevated) !important;
   border-color: var(--border) !important;

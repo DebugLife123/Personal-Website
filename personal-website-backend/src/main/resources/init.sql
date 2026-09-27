@@ -233,7 +233,9 @@ ON DUPLICATE KEY UPDATE page_views = VALUES(page_views), unique_visitors = VALUE
 INSERT INTO site_setting (setting_key, setting_value, description) VALUES
 ('site_title', 'yu翔的个人网站', '站点标题'),
 ('site_description', '记录技术与生活', '站点简介'),
-('icp', '', '备案号'),
 ('footer_text', 'Built with Vue3 & SpringBoot', '页脚文案'),
 ('music_autoplay', 'false', '音乐自动播放')
 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);
+
+-- 历史遗留：早期版本内置过「备案号」设置项，现已移除，顺带清理存量数据
+DELETE FROM site_setting WHERE setting_key = 'icp';
