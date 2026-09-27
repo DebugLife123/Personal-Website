@@ -52,6 +52,10 @@ public class WebUserController {
     private static final Pattern EMAIL_RE = Pattern.compile("^[\\w.+-]+@[\\w-]+\\.[\\w.]+$");
     /** 保留名：防止冒充站长或后台账号 */
     private static final Set<String> RESERVED = Set.of("admin", "administrator", "root", "system", "yu翔", "yuxiang", "站长", "管理员");
+    /** 允许的预置形象 key（与前端 utils/avatar.js 保持一致） */
+    private static final Set<String> ALLOWED_AVATARS = Set.of(
+            "preset:orange", "preset:black", "preset:yellow",
+            "preset:purple", "preset:teal");
 
     // ==================== 公开接口 ====================
 
@@ -95,6 +99,11 @@ public class WebUserController {
         if (email != null && !email.isEmpty() && !EMAIL_RE.matcher(email).matches()) {
             return Result.error("邮箱格式不正确");
         }
+        // 形象：前端只传预置 key（如 preset:orange），这里按白名单校验，避免任意串入库
+        String avatar = trim(params.get("avatar"));
+        if (avatar != null && !avatar.isEmpty() && !ALLOWED_AVATARS.contains(avatar)) {
+            return Result.error("头像不合法");
+        }
         // 与管理员账号重名直接拒绝，避免身份混淆
         Long adminDup = userMapper.selectCount(new QueryWrapper<User>().eq("username", username));
         if (adminDup > 0) return Result.error("该用户名已被占用");
@@ -106,7 +115,7 @@ public class WebUserController {
         user.setPassword(passwordEncoder.encode(password));
         user.setNickname(nickname);
         user.setEmail(email == null ? "" : email);
-        user.setAvatar("");
+        user.setAvatar(avatar == null ? "" : avatar);
         user.setStatus("normal");
         webUserMapper.insert(user);
         // 重新读取，补齐数据库默认值（create_time 等）

@@ -43,7 +43,7 @@
         <!-- 登录用户：头像 + 下拉 -->
         <div v-if="isLoggedIn && !isAdmin" class="user-chip" @click="toggleUserMenu" ref="userChipRef">
           <div class="user-chip-avatar">
-            <img v-if="currentUser?.avatar" :src="currentUser.avatar" />
+            <img v-if="userAvatar" :src="userAvatar" />
             <div v-else class="user-chip-initial">{{ userInitial }}</div>
           </div>
           <span class="user-chip-name">{{ displayName }}</span>
@@ -81,6 +81,7 @@ import {
 import musicPlayer from '../utils/musicPlayer'
 import request from '../utils/request'
 import { isLoggedIn, isAdmin, currentUser, logout } from '../utils/auth'
+import { avatarUrl } from '../utils/avatar'
 
 const props = defineProps({
   isDarkMode: Boolean
@@ -123,6 +124,7 @@ const handleLogout = () => {
 const userMenuOpen = ref(false)
 const userChipRef = ref(null)
 const displayName = computed(() => currentUser.value?.nickname || currentUser.value?.username || '')
+const userAvatar = computed(() => avatarUrl(currentUser.value?.avatar))
 const userInitial = computed(() => (displayName.value || 'U').charAt(0).toUpperCase())
 const toggleUserMenu = () => { userMenuOpen.value = !userMenuOpen.value }
 const goProfile = () => { userMenuOpen.value = false; router.push('/messages') }

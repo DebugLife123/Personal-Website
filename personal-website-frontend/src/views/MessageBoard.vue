@@ -6,13 +6,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTodayStatistic, getTotalStatistic } from '../utils/statistic'
 import { DataLine, ChatDotSquare } from '@element-plus/icons-vue'
 import { isAdmin, isUser, currentUser } from '../utils/auth'
+import { avatarUrl } from '../utils/avatar'
 
 const router = useRouter()
 
 // 只有注册用户/管理员能留言；游客仅可浏览
 const canPost = computed(() => isAdmin.value || isUser.value)
 const myName = computed(() => isAdmin.value ? '管理员' : (currentUser.value?.nickname || currentUser.value?.username || ''))
-const myAvatar = computed(() => isAdmin.value ? '' : (currentUser.value?.avatar || ''))
+const myAvatar = computed(() => isAdmin.value ? '' : avatarUrl(currentUser.value?.avatar))
 const myInitial = computed(() => (myName.value || 'U').charAt(0).toUpperCase())
 
 const goLogin = (tab) => {
@@ -327,7 +328,7 @@ onMounted(async () => {
 
                 <header class="entry-head">
                   <span class="entry-avatar">
-                    <img v-if="msg.avatar" :src="msg.avatar" alt="" />
+                    <img v-if="avatarUrl(msg.avatar)" :src="avatarUrl(msg.avatar)" alt="" />
                     <template v-else>{{ msg.nickname?.charAt(0)?.toUpperCase() || '访' }}</template>
                   </span>
                   <div class="entry-who">
