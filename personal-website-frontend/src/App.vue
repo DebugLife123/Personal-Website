@@ -421,7 +421,8 @@ html.dark .article-detail-container .toc-item:hover {
    🌙 项目 / 留言页 · 暗色（与全站暗色系一致，令牌整体替换）
    ============================================================ */
 html.dark .projects-page,
-html.dark .message-page {
+html.dark .message-page,
+html.dark .gallery-page {
   --page: #09090c;
   --card: #131316;
   --card-soft: #1a1a20;

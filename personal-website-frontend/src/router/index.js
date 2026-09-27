@@ -32,6 +32,11 @@ const routes = [
     name: 'Projects',
     component: () => import('../views/Projects.vue')
   },
+  {
+    path: '/gallery',
+    name: 'Gallery',
+    component: () => import('../views/Gallery.vue')
+  },
   { path: '/message', redirect: '/messages' },
   { path: '/blog', component: () => import('../views/Blog.vue') },
   {
@@ -58,6 +63,7 @@ const routes = [
       { path: 'categories', component: () => import('../views/admin/CategoryManagement.vue') },
       { path: 'comments', component: () => import('../views/admin/CommentManagement.vue') },
       { path: 'messages', component: () => import('../views/admin/MessageManagement.vue') },
+      { path: 'gallery', component: () => import('../views/admin/GalleryManagement.vue') },
       { path: 'users', component: () => import('../views/admin/WebUserManagement.vue') },
       { path: 'music', component: () => import('../views/admin/MusicManagement.vue') },
       { path: 'visitors', component: () => import('../views/admin/VisitorManagement.vue') },

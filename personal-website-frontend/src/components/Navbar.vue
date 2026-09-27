@@ -76,7 +76,7 @@ import { useRouter } from 'vue-router'
 import {
   HomeFilled, Notebook, Document, Box, ChatLineRound,
   VideoPlay, VideoPause, DArrowRight, Moon, Sunny, Headset,
-  ArrowDown, User, SwitchButton
+  ArrowDown, User, SwitchButton, Picture
 } from '@element-plus/icons-vue'
 import musicPlayer from '../utils/musicPlayer'
 import request from '../utils/request'
@@ -94,6 +94,7 @@ const navLinks = [
   { name: '博客', icon: Notebook, path: '/blog' },
   { name: '简历', icon: Document, path: '/resume' },
   { name: '项目', icon: Box, path: '/projects' },
+  { name: '图库', icon: Picture, path: '/gallery' },
   { name: '留言', icon: ChatLineRound, path: '/messages' },
 ]
 

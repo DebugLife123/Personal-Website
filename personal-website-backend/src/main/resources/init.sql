@@ -218,6 +218,20 @@ CREATE TABLE IF NOT EXISTS project (
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='项目展示表';
 
+-- 7.1 图库照片表
+CREATE TABLE IF NOT EXISTS gallery (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) DEFAULT '' COMMENT '标题（可选）',
+    description VARCHAR(500) DEFAULT '' COMMENT '照片简介',
+    url VARCHAR(500) NOT NULL COMMENT '图片地址',
+    location VARCHAR(100) DEFAULT '' COMMENT '拍摄地（可选）',
+    shot_time VARCHAR(50) DEFAULT '' COMMENT '拍摄时间文本（可选）',
+    sort INT DEFAULT 0 COMMENT '排序值，越小越靠前',
+    status VARCHAR(20) DEFAULT 'visible' COMMENT 'visible/hidden',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+    INDEX idx_gallery_status_sort (status, sort)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图库照片表';
+
 -- 8. 操作日志表
 CREATE TABLE IF NOT EXISTS operation_log (
     id INT AUTO_INCREMENT PRIMARY KEY,
